@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const { data: session, error: sessErr } = await supabase
       .from("exam_sessions")
-      .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
       .eq("id", id)
       .single();
 
@@ -59,12 +59,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (body.title !== undefined) update.title = body.title;
     if (body.bankId !== undefined) update.bank_id = body.bankId;
     if (body.startsAt !== undefined) update.starts_at = body.startsAt ? new Date(body.startsAt) : null;
+    if (body.endsAt !== undefined) update.ends_at = body.endsAt ? new Date(body.endsAt) : null;
     if (body.durationMinutes !== undefined) update.duration_minutes = body.durationMinutes === null ? null : Number(body.durationMinutes);
     if (body.settings !== undefined) update.settings = body.settings;
     if (body.isActive !== undefined) update.is_active = body.isActive;
 
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, duration_minutes, settings, is_active').single();
+    const { data, error } = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active').single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
