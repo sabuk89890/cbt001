@@ -25,3 +25,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Dark-mode overrides for Tailwind blue utilities -> map to maroon/near-black */
+@media (prefers-color-scheme: dark) {
+  /* Replace common Tailwind blue backgrounds */
+  .bg-blue-600 { background-color: #3a0b0b !important; }
+  .bg-blue-500 { background-color: #4a0d0d !important; }
+
+  /* Text colors */
+  .text-blue-600, .text-blue-500 { color: #f3e6e6 !important; }
+
+  /* Borders / rings */
+  .border-blue-500 { border-color: #4a0d0d !important; }
+  .ring-blue-500 { box-shadow: 0 0 0 4px rgba(75,13,13,0.12) !important; }
+
+  /* Gradient utilities (approx) */
+  .from-blue-500 { --tw-gradient-from: #4a0d0d !important; }
+  .via-blue-500 { --tw-gradient-stops: var(--tw-gradient-from), #2b0707, var(--tw-gradient-to) !important; }
+
+  /* Hover variants (escape colon) */
+  .hover\:bg-blue-600:hover { background-color: #3a0b0b !important; }
+  .hover\:text-blue-600:hover { color: #f3e6e6 !important; }
+}
