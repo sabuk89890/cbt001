@@ -76,31 +76,6 @@ export default function AdminSubjectsPage() {
   /**
    * @param {{ id: string; name?: string }} subject
    */
-  async function handleDelete(subject) {
-    const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
-    if (!confirmed) {
-      return;
-    }
-
-    setMessage("");
-
-    try {
-      const response = await fetch(`/api/admin/subjects/${subject.id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        setMessage(result.error ?? "Gagal menghapus mata pelajaran");
-        return;
-      }
-
-      setMessage(result.message ?? "Mata pelajaran berhasil dihapus");
-      await loadSubjects();
-    } catch {
-      setMessage("Terjadi kesalahan saat menghapus mata pelajaran");
-    }
-  }
 
   function handleStartEdit(subject) {
     setEditSubjectId(subject.id);
@@ -226,7 +201,23 @@ export default function AdminSubjectsPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => void handleDelete(subject)}
+                            onClick={async () => {
+                              const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
+                              if (!confirmed) return;
+                              setMessage("");
+                              try {
+                                const response = await fetch(`/api/admin/subjects/${subject.id}`, { method: "DELETE" });
+                                const result = await response.json();
+                                if (!response.ok) {
+                                  setMessage(result.error ?? "Gagal menghapus mata pelajaran");
+                                  return;
+                                }
+                                setMessage(result.message ?? "Mata pelajaran berhasil dihapus");
+                                await loadSubjects();
+                              } catch {
+                                setMessage("Terjadi kesalahan saat menghapus mata pelajaran");
+                              }
+                            }}
                             className="rounded bg-red-600 px-3 py-1 text-xs text-white"
                           >
                             Hapus
