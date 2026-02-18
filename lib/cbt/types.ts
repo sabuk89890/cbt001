@@ -1,3 +1,4 @@
+export type MatchingQuestionUIProps = { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean };
 import type { QuestionType } from "./question-engine";
 
 export type ExamQuestion = {
