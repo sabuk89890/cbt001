@@ -1,7 +1,7 @@
 "use client";
 
 import type { ExamQuestion } from "@/lib/cbt/types";
-import { getRandomColor } from "@/lib/utils/color";
+import { getRandomColor } from "../../lib/utils/color";
 import { useRef, useState } from "react";
 
 type Pair = { left: string; right: string };
