@@ -6,15 +6,14 @@ import { useEffect, useState } from "react";
 
 
 export default function AdminSubjectsPage() {
-  /** @type {{ id: string; code: string; name: string; created_at: string }[]} */
-  const [subjects, setSubjects] = useState([]);
+  const [subjects, setSubjects] = useState<{ id: string; code: string; name: string; created_at: string }[]>([]);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editSubjectId, setEditSubjectId] = useState(null);
+  const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
