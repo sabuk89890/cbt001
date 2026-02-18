@@ -1,6 +1,8 @@
 "use client";
 
 import type { ExamQuestion } from "@/lib/cbt/types";
+import { getRandomColor } from "@/lib/utils/color";
+import { useRef, useState } from "react";
 
 type Pair = { left: string; right: string };
 type TrueFalseStatement = { text: string; isTrue: boolean };
@@ -221,39 +223,139 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       ) : null}
 
       {question.questionType === "matching" ? (
-        <div className="space-y-2">
-          {normalizePairs(question.answerKey.pairs).map((pair) => {
-            const selectedPairs = normalizePairs(value);
-            const selected = selectedPairs.find((item) => item.left === pair.left);
-            const rightOptions = normalizePairs(question.answerKey.pairs).map((item) => item.right);
+        <MatchingQuestionUI
+          question={question}
+          value={value}
+          onChange={onChange}
+          readOnly={readOnly}
+        />
+      ) : null}
 
+// --- MatchingQuestionUI ---
+// Fungsi harus di luar komponen dan hanya pakai const
+
+function MatchingQuestionUI({ question, value, onChange, readOnly }: { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean }) {
+  const lefts = normalizePairs(question.answerKey.pairs).map((p) => p.left);
+  const rights = (question.answerKey.options && Array.isArray(question.answerKey.options)
+    ? normalizeStringList(question.answerKey.options)
+    : normalizePairs(question.answerKey.pairs).map((p) => p.right));
+  const selectedPairs = normalizePairs(value);
+  const [pendingLeft, setPendingLeft] = useState<string | null>(null);
+  const leftRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const rightRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Build color map for each pair
+  const colorMap: Record<string, string> = {};
+  selectedPairs.forEach((pair, idx) => {
+    colorMap[pair.left + "-" + pair.right] = getRandomColor(pair.left + "-" + pair.right);
+  });
+
+  // SVG lines for connected pairs
+  const lines = selectedPairs.map((pair, idx) => {
+    const lIdx = lefts.indexOf(pair.left);
+    const rIdx = rights.indexOf(pair.right);
+    if (lIdx === -1 || rIdx === -1) return null;
+    const leftEl = leftRefs.current[lIdx];
+    const rightEl = rightRefs.current[rIdx];
+    if (!leftEl || !rightEl) return null;
+    const leftRect = leftEl.getBoundingClientRect();
+    const rightRect = rightEl.getBoundingClientRect();
+    // SVG parent offset
+    const svgRect = leftEl.parentElement?.parentElement?.getBoundingClientRect();
+    if (!svgRect) return null;
+    const y1 = leftRect.top + leftRect.height / 2 - svgRect.top;
+    const y2 = rightRect.top + rightRect.height / 2 - svgRect.top;
+    const x1 = leftRect.right - svgRect.left;
+    const x2 = rightRect.left - svgRect.left;
+    const color = colorMap[pair.left + "-" + pair.right] || getRandomColor(pair.left + "-" + pair.right);
+    return (
+      <line
+        key={pair.left + "-" + pair.right}
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={color}
+        strokeWidth={4}
+        markerEnd="url(#arrow)"
+      />
+    );
+  });
+
+  function handleLeftClick(left: string) {
+    if (readOnly) return;
+    setPendingLeft(left === pendingLeft ? null : left);
+  }
+  function handleRightClick(right: string) {
+    if (readOnly || !pendingLeft) return;
+    // Remove if already paired
+    const filtered = selectedPairs.filter((p) => p.left !== pendingLeft && p.right !== right);
+    // Remove previous pair for this left
+    const withoutLeft = filtered.filter((p) => p.left !== pendingLeft);
+    // Add new pair
+    const next = [...withoutLeft, { left: pendingLeft, right }];
+    setPendingLeft(null);
+    onChange?.(next);
+  }
+  function handleRemovePair(left: string) {
+    if (readOnly) return;
+    const next = selectedPairs.filter((p) => p.left !== left);
+    onChange?.(next);
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }}>
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L10,5 L0,10" fill="gray" />
+          </marker>
+        </defs>
+        {lines}
+      </svg>
+      <div className="grid grid-cols-2 gap-4 relative z-10">
+        <div className="space-y-2">
+          {lefts.map((left, idx) => {
+            const pair = selectedPairs.find((p) => p.left === left);
+            const color = pair ? colorMap[pair.left + "-" + pair.right] : undefined;
             return (
-              <div key={pair.left} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr]">
-                <p className="rounded-md border px-3 py-2 text-sm">{pair.left}</p>
-                <select
-                  value={selected?.right ?? ""}
-                  disabled={readOnly}
-                  onChange={(event) => {
-                    const current = normalizePairs(value).filter((item) => item.left !== pair.left);
-                    const next = event.target.value
-                      ? [...current, { left: pair.left, right: event.target.value }]
-                      : current;
-                    onChange?.(next);
-                  }}
-                  className="rounded-md border px-3 py-2 text-sm"
-                >
-                  <option value="">Pilih pasangan</option>
-                  {rightOptions.map((option) => (
-                    <option key={`${pair.left}-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+              <div
+                key={left}
+                ref={el => leftRefs.current[idx] = el}
+                className={`rounded-md border px-3 py-2 text-sm cursor-pointer select-none flex items-center gap-2 ${pendingLeft === left ? "ring-2 ring-blue-400" : ""}`}
+                style={{ background: color || undefined, borderColor: color || undefined, opacity: pair ? 0.95 : 1 }}
+                onClick={() => handleLeftClick(left)}
+              >
+                <span>{left}</span>
+                {pair && !readOnly ? (
+                  <button type="button" className="ml-auto text-xs text-red-600" onClick={e => { e.stopPropagation(); handleRemovePair(left); }}>Hapus</button>
+                ) : null}
               </div>
             );
           })}
         </div>
-      ) : null}
+        <div className="space-y-2">
+          {rights.map((right, idx) => {
+            const pair = selectedPairs.find((p) => p.right === right);
+            const color = pair ? colorMap[pair.left + "-" + pair.right] : undefined;
+            return (
+              <div
+                key={right}
+                ref={el => rightRefs.current[idx] = el}
+                className={`rounded-md border px-3 py-2 text-sm cursor-pointer select-none ${pair ? "opacity-95" : ""}`}
+                style={{ background: color || undefined, borderColor: color || undefined }}
+                onClick={() => handleRightClick(right)}
+              >
+                <span>{right}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <p className="text-xs text-slate-500 mt-2">Klik kiri lalu klik kanan untuk menjodohkan. Klik "Hapus" untuk membatalkan pasangan.</p>
+    </div>
+  );
+}
     </fieldset>
   );
 }
