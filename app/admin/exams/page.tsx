@@ -193,11 +193,11 @@ export default function AdminExamsPage() {
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-semibold mb-4">Manajemen Ujian</h1>
+        <h1 className="text-2xl font-semibold mb-4">Jadwal Ujian</h1>
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-medium">Manajemen Ujian</h2>
+            <h2 className="text-lg font-medium">Jadwal Ujian</h2>
             <p className="text-sm text-slate-500">Kelola jadwal ujian dan peserta</p>
           </div>
           <div>

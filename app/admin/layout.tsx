@@ -12,7 +12,7 @@ const menuItems = [
   { label: "Dashboard", icon: "📊", href: "/admin" },
   { label: "Pengguna", icon: "👥", href: "/admin/users" },
   { label: "Bank Soal", icon: "🗂️", href: "/admin/question-bank" },
-  { label: "Manajemen Ujian", icon: "📝", href: "/admin/exams" },
+  { label: "Jadwal Ujian", icon: "📝", href: "/admin/exams" },
   { label: "Review", icon: "✅", href: "/admin/review" },
 ];
 
