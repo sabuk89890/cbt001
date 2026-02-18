@@ -231,6 +231,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     }
   }
   function populateFormForEdit(item: BankQuestion) {
+    console.log("populateFormForEdit", item.id, item.questionType);
     setEditId(item.id);
     setQuestionId(item.id);
     setPrompt(item.prompt ?? "");
@@ -283,6 +284,13 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     // default to essay
     setCreateMode("essay");
     setAnswerKeySlash(typeof item.correctAnswer === "string" ? item.correctAnswer : "");
+    // bring form into view when editing
+    try {
+      const el = document.getElementById("question-form");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {
+      /* ignore in SSR */
+    }
   }
 
   async function handleDeleteQuestion(id: string) {
@@ -541,7 +549,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               </button>
             </div>
 
-            <form onSubmit={handleCreateQuestion} className="grid gap-3">
+            <form id="question-form" onSubmit={handleCreateQuestion} className="grid gap-3">
               <input
                 type="text"
                 placeholder="ID Soal"
@@ -784,11 +792,13 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   ? "Menyimpan..."
                   : createMode === "essay"
                     ? "Simpan Soal Essay"
-                    : createMode === "multiple-choice-complex"
-                      ? "Simpan Soal Pilihan Ganda Kompleks"
-                      : createMode === "matching"
-                        ? "Simpan Soal Menjodohkan"
-                        : "Simpan Soal Benar / Salah"}
+                    : createMode === "multiple-choice"
+                      ? "Simpan Soal Pilihan Ganda"
+                      : createMode === "multiple-choice-complex"
+                        ? "Simpan Soal Pilihan Ganda Kompleks"
+                        : createMode === "matching"
+                          ? "Simpan Soal Menjodohkan"
+                          : "Simpan Soal Benar / Salah"}
               </button>
             </form>
           </section>
