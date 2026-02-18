@@ -25,6 +25,10 @@ type SavePayload = {
   photoUrl?: string | null;
 };
 
+function getSortableName(user: UserRow) {
+  return (user.full_name ?? user.username ?? "").toLowerCase();
+}
+
 function parseCsv(text: string) {
   const lines = text
     .split(/\r?\n/)
@@ -68,6 +72,7 @@ export default function AdminUsersPage() {
   const [csvFileName, setCsvFileName] = useState("");
   const csvInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedClassView, setSelectedClassView] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editUserId, setEditUserId] = useState<string | null>(null);
@@ -118,18 +123,50 @@ export default function AdminUsersPage() {
     );
   }, [activeRole, users]);
 
-  const studentsInSelectedClass = useMemo(
-    () => users.filter((user) => activeRole === "student" && user.class_name === selectedClassView),
-    [activeRole, selectedClassView, users]
+  const normalizedNameFilter = useMemo(
+    () => nameFilter.trim().toLowerCase(),
+    [nameFilter]
   );
 
-  const displayedUsers = useMemo(() => {
-    if (activeRole === "student" && selectedClassView) {
-      return users.filter((user) => user.class_name === selectedClassView);
+  const studentsInSelectedClass = useMemo(() => {
+    const filteredByClass = users.filter((user) => {
+      if (activeRole !== "student") {
+        return false;
+      }
+
+      if (!selectedClassView) {
+        return true;
+      }
+
+      return user.class_name === selectedClassView;
+    });
+
+    if (!normalizedNameFilter) {
+      return filteredByClass;
     }
 
-    return users;
-  }, [activeRole, selectedClassView, users]);
+    return filteredByClass.filter((user) => {
+      const keyword = `${user.full_name ?? ""} ${user.username ?? ""}`.toLowerCase();
+      return keyword.includes(normalizedNameFilter);
+    }).sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)));
+  }, [activeRole, normalizedNameFilter, selectedClassView, users]);
+
+  const displayedUsers = useMemo(() => {
+    let filteredUsers = users;
+
+    if (activeRole === "student" && selectedClassView) {
+      filteredUsers = filteredUsers.filter((user) => user.class_name === selectedClassView);
+    }
+
+    if (normalizedNameFilter) {
+      filteredUsers = filteredUsers.filter((user) => {
+        const keyword = `${user.full_name ?? ""} ${user.username ?? ""}`.toLowerCase();
+        return keyword.includes(normalizedNameFilter);
+      });
+    }
+
+    return [...filteredUsers].sort((a, b) => getSortableName(a).localeCompare(getSortableName(b)));
+  }, [activeRole, normalizedNameFilter, selectedClassView, users]);
 
   const selectedVisibleIds = useMemo(
     () => selectedIds.filter((id) => displayedUsers.some((user) => user.id === id)),
@@ -155,8 +192,8 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (!classOptions.includes(selectedClassView)) {
-      setSelectedClassView(classOptions[0]);
+    if (selectedClassView && !classOptions.includes(selectedClassView)) {
+      setSelectedClassView("");
     }
   }, [activeRole, classOptions, selectedClassView]);
 
@@ -615,6 +652,17 @@ export default function AdminUsersPage() {
             ) : (
               <>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClassView("")}
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      selectedClassView === ""
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    Semua Kelas
+                  </button>
                   {classOptions.map((classOption) => (
                     <button
                       key={classOption}
@@ -629,6 +677,16 @@ export default function AdminUsersPage() {
                       {classOption}
                     </button>
                   ))}
+                </div>
+
+                <div className="mt-3 max-w-md">
+                  <input
+                    type="text"
+                    placeholder="Cari berdasarkan nama atau username"
+                    value={nameFilter}
+                    onChange={(event) => setNameFilter(event.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -658,6 +716,9 @@ export default function AdminUsersPage() {
                       </div>
                     </article>
                   ))}
+                  {studentsInSelectedClass.length === 0 ? (
+                    <p className="text-sm text-slate-500">Tidak ada siswa yang cocok dengan filter nama.</p>
+                  ) : null}
                 </div>
               </>
             )}
@@ -689,6 +750,7 @@ export default function AdminUsersPage() {
               <table className="min-w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left">
+                    <th className="px-2 py-2">No.</th>
                     {canManageStudentBulk ? <th className="px-2 py-2">Pilih</th> : null}
                     <th className="px-2 py-2">Foto</th>
                     <th className="px-2 py-2">Username</th>
@@ -698,8 +760,9 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedUsers.map((user) => (
+                  {displayedUsers.map((user, index) => (
                     <tr key={user.id} className="border-b border-slate-100">
+                      <td className="px-2 py-2">{index + 1}</td>
                       {canManageStudentBulk ? (
                         <td className="px-2 py-2">
                           <input
