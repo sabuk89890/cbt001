@@ -227,6 +227,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
         <MatchingQuestion
           answerKeyPairs={normalizePairs(question.answerKey.pairs)}
           valuePairs={normalizePairs(value)}
+          extraRightOptions={normalizeStringList((question.answerKey as { extraRightOptions?: unknown })?.extraRightOptions)}
           onChange={onChange}
           readOnly={readOnly}
         />

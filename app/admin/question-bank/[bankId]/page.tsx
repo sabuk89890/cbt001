@@ -70,6 +70,8 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     { id: `m-${Date.now()}-1`, left: "", right: "" },
     { id: `m-${Date.now()}-2`, left: "", right: "" },
   ]);
+  const [extraRightOptions, setExtraRightOptions] = useState<string[]>([""]);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -108,15 +110,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
         };
 
         if (!questionsResponse.ok) {
-              <button
-                type="button"
-                onClick={() => resetForm("matching")}
-                className={`rounded-lg px-4 py-2 text-sm ${
-                  createMode === "matching" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
-                }`}
-              >
-                Menjodohkan
-              </button>
           setMessage(questionResult.error ?? "Gagal memuat daftar soal");
           return;
         }
@@ -215,11 +208,84 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setMatchingRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   }
 
+  function addExtraRightOption() {
+    setExtraRightOptions((prev) => [...prev, ""]);
+  }
+
+  function updateExtraRightOption(index: number, value: string) {
+    setExtraRightOptions((prev) => prev.map((v, i) => (i === index ? value : v)));
+  }
+
+  function removeExtraRightOption(index: number) {
+    setExtraRightOptions((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
   async function refreshQuestions() {
     const listResponse = await fetch("/api/questions", { cache: "no-store" });
     const listResult = (await listResponse.json()) as { data?: BankQuestion[]; error?: string };
     if (listResponse.ok) {
       setQuestions(listResult.data ?? []);
+    }
+  }
+
+  function populateFormForEdit(item: BankQuestion) {
+    setEditId(item.id);
+    setQuestionId(item.id);
+    setPrompt(item.prompt ?? "");
+    setMaxScore(String(item.maxScore ?? 10));
+    setImageUrl(typeof (item.answerKey as any)?.imageUrl === "string" ? (item.answerKey as any).imageUrl : "");
+
+    if (item.questionType === "multiple-choice-complex") {
+      const opts = Array.isArray(item.answerKey?.correctAnswers)
+        ? (item.answerKey.correctAnswers as string[])
+        : [];
+      setOptionA(opts[0] ?? "");
+      setOptionB(opts[1] ?? "");
+      setOptionC(opts[2] ?? "");
+      setOptionD(opts[3] ?? "");
+      setSelectedCorrectOptions(Array.isArray(item.answerKey?.correctAnswers) ? (item.answerKey.correctAnswers as string[]) : []);
+      setCreateMode("multiple-choice-complex");
+      return;
+    }
+
+    if (item.questionType === "true-false") {
+      const stm = Array.isArray(item.answerKey?.statements) ? (item.answerKey.statements as any[]) : [];
+      setTrueFalseRows(
+        stm.map((s, i) => ({ id: `tf-edit-${i}`, text: String(s.text ?? ""), answer: s.isTrue ? "Benar" : "Salah" }))
+      );
+      setCreateMode("true-false");
+      return;
+    }
+
+    if (item.questionType === "matching") {
+      const pairs = Array.isArray(item.answerKey?.pairs) ? (item.answerKey.pairs as any[]) : [];
+      setMatchingRows(
+        pairs.map((p, i) => ({ id: `m-edit-${i}`, left: String(p.left ?? ""), right: String(p.right ?? "") }))
+      );
+      const extra = Array.isArray(item.answerKey?.extraRightOptions) ? (item.answerKey.extraRightOptions as string[]) : [];
+      setExtraRightOptions(extra.length > 0 ? extra : [""]);
+      setCreateMode("matching");
+      return;
+    }
+
+    // default to essay
+    setCreateMode("essay");
+    setAnswerKeySlash(typeof item.correctAnswer === "string" ? item.correctAnswer : "");
+  }
+
+  async function handleDeleteQuestion(id: string) {
+    if (!confirm("Hapus soal ini? Tindakan tidak dapat dibatalkan.")) return;
+    try {
+      const res = await fetch(`/api/questions/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) {
+        setMessage(json.error ?? "Gagal menghapus soal");
+        return;
+      }
+      setMessage("Soal berhasil dihapus");
+      await refreshQuestions();
+    } catch (e) {
+      setMessage("Terjadi kesalahan saat menghapus soal");
     }
   }
 
@@ -298,6 +364,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                       .filter((r) => r.left.trim().length > 0 && r.right.trim().length > 0)
                       .map((r) => ({ left: r.left.trim(), right: r.right.trim() })),
                     imageUrl,
+                    extraRightOptions: extraRightOptions.filter((v) => v.trim().length > 0),
                   },
                 }
               : {
@@ -319,8 +386,10 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   },
                 };
 
-      const response = await fetch("/api/questions", {
-        method: "POST",
+      const method = editId ? "PUT" : "POST";
+      const url = editId ? `/api/questions/${editId}` : "/api/questions";
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -337,15 +406,20 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
         return;
       }
 
-      setMessage(
-        createMode === "essay"
-          ? "Soal essay berhasil dibuat"
-          : createMode === "multiple-choice-complex"
-            ? "Soal pilihan ganda kompleks berhasil dibuat"
-            : createMode === "matching"
-              ? "Soal menjodohkan berhasil dibuat"
-              : "Soal benar/salah berhasil dibuat"
-      );
+      if (editId) {
+        setMessage("Soal berhasil diperbarui");
+      } else {
+        setMessage(
+          createMode === "essay"
+            ? "Soal essay berhasil dibuat"
+            : createMode === "multiple-choice-complex"
+              ? "Soal pilihan ganda kompleks berhasil dibuat"
+              : createMode === "matching"
+                ? "Soal menjodohkan berhasil dibuat"
+                : "Soal benar/salah berhasil dibuat"
+        );
+      }
+      setEditId(null);
       resetForm(createMode);
       await refreshQuestions();
     } catch {
@@ -516,7 +590,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                     </button>
                   </div>
 
-                  {matchingRows.map((row) => (
+                    {matchingRows.map((row) => (
                     <div key={row.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
                       <input
                         type="text"
@@ -543,6 +617,30 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                       </button>
                     </div>
                   ))}
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-slate-700">Opsi Kanan Tambahan (boleh lebih banyak satu)</p>
+                    <div className="space-y-2 mt-2">
+                      {extraRightOptions.map((val, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Opsi kanan tambahan"
+                            value={val}
+                            onChange={(e) => updateExtraRightOption(i, e.target.value)}
+                            className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
+                          />
+                          <button type="button" className="text-red-500" onClick={() => removeExtraRightOption(i)}>
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      <div>
+                        <button type="button" onClick={addExtraRightOption} className="rounded-lg px-3 py-1 bg-slate-100 text-sm">
+                          Tambah Opsi Kanan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -638,10 +736,30 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               <ul className="space-y-3">
                 {bankQuestions.map((item, index) => (
                   <li key={item.id} className="rounded-xl border border-slate-200 p-3">
-                    <p className="text-xs text-slate-500">
-                      {index + 1}. {item.id} • {item.questionType} • Bobot {item.maxScore}
-                    </p>
-                    <p className="text-sm font-medium text-slate-700">{item.prompt}</p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs text-slate-500">
+                          {index + 1}. {item.id} • {item.questionType} • Bobot {item.maxScore}
+                        </p>
+                        <p className="text-sm font-medium text-slate-700">{item.prompt}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="rounded-md border px-3 py-1 text-sm"
+                          onClick={() => populateFormForEdit(item)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-600"
+                          onClick={() => handleDeleteQuestion(item.id)}
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
