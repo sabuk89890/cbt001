@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 
 type TeacherOption = {
   id: string;
@@ -13,6 +13,7 @@ type QuestionBank = {
   id: string;
   title: string;
   subject: string | null;
+  targetClasses: string[];
   ownerTeacherId: string;
   ownerTeacherName: string;
   questionCount: number;
@@ -27,12 +28,14 @@ function teacherLabel(teacher: TeacherOption) {
 export default function QuestionBankPage() {
   const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [classOptions, setClassOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
+  const [targetClasses, setTargetClasses] = useState<string[]>([]);
   const [ownerTeacherId, setOwnerTeacherId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -40,6 +43,7 @@ export default function QuestionBankPage() {
   const [editingBankId, setEditingBankId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSubject, setEditSubject] = useState("");
+  const [editTargetClasses, setEditTargetClasses] = useState<string[]>([]);
   const [editOwnerTeacherId, setEditOwnerTeacherId] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -56,7 +60,11 @@ export default function QuestionBankPage() {
 
     try {
       const response = await fetch("/api/admin/question-banks", { cache: "no-store" });
-      const result = (await response.json()) as { data?: QuestionBank[]; error?: string };
+      const result = (await response.json()) as {
+        data?: QuestionBank[];
+        classOptions?: string[];
+        error?: string;
+      };
 
       if (!response.ok) {
         setMessage(result.error ?? "Gagal memuat bank soal");
@@ -64,6 +72,7 @@ export default function QuestionBankPage() {
       }
 
       setQuestionBanks(result.data ?? []);
+      setClassOptions(result.classOptions ?? []);
     } catch {
       setMessage("Terjadi kesalahan saat memuat bank soal");
     } finally {
@@ -100,13 +109,19 @@ export default function QuestionBankPage() {
   function resetCreateForm() {
     setTitle("");
     setSubject("");
+    setTargetClasses([]);
     setOwnerTeacherId(teachers[0]?.id ?? "");
+  }
+
+  function getSelectedValues(event: ChangeEvent<HTMLSelectElement>) {
+    return Array.from(event.target.selectedOptions).map((option) => option.value);
   }
 
   function handleStartEdit(bank: QuestionBank) {
     setEditingBankId(bank.id);
     setEditTitle(bank.title);
     setEditSubject(bank.subject ?? "");
+    setEditTargetClasses(bank.targetClasses ?? []);
     setEditOwnerTeacherId(bank.ownerTeacherId);
     setIsEditOpen(true);
   }
@@ -126,6 +141,7 @@ export default function QuestionBankPage() {
         body: JSON.stringify({
           title,
           subject,
+          targetClasses,
           ownerTeacherId,
         }),
       });
@@ -166,6 +182,7 @@ export default function QuestionBankPage() {
         body: JSON.stringify({
           title: editTitle,
           subject: editSubject,
+          targetClasses: editTargetClasses,
           ownerTeacherId: editOwnerTeacherId,
         }),
       });
@@ -254,6 +271,9 @@ export default function QuestionBankPage() {
                     <p className="text-xl font-semibold text-slate-800">{bank.title}</p>
                     <p className="mt-1 text-sm text-slate-500">Guru: {bank.ownerTeacherName}</p>
                     <p className="text-sm text-slate-500">Mapel: {bank.subject ?? "Umum"}</p>
+                    <p className="text-sm text-slate-500">
+                      Kelas: {bank.targetClasses.length > 0 ? bank.targetClasses.join(", ") : "-"}
+                    </p>
                   </div>
                   <div className="rounded-2xl bg-violet-100 p-3 text-violet-600">📝</div>
                 </div>
@@ -334,9 +354,27 @@ export default function QuestionBankPage() {
                   ))}
                 </select>
 
+                <div className="grid gap-1">
+                  <label className="text-sm text-slate-600">Pilih Kelas (bisa lebih dari satu)</label>
+                  <select
+                    multiple
+                    value={targetClasses}
+                    onChange={(event) => setTargetClasses(getSelectedValues(event))}
+                    className="h-32 rounded-lg border border-slate-300 px-3 py-2"
+                    required
+                  >
+                    {classOptions.map((className) => (
+                      <option key={className} value={className}>
+                        {className}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500">Tekan Ctrl (Windows) untuk pilih beberapa kelas.</p>
+                </div>
+
                 <button
                   type="submit"
-                  disabled={isSaving || teachers.length === 0}
+                  disabled={isSaving || teachers.length === 0 || classOptions.length === 0}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   {isSaving ? "Menyimpan..." : "Simpan Bank Soal"}
@@ -389,9 +427,27 @@ export default function QuestionBankPage() {
                   ))}
                 </select>
 
+                <div className="grid gap-1">
+                  <label className="text-sm text-slate-600">Pilih Kelas (bisa lebih dari satu)</label>
+                  <select
+                    multiple
+                    value={editTargetClasses}
+                    onChange={(event) => setEditTargetClasses(getSelectedValues(event))}
+                    className="h-32 rounded-lg border border-slate-300 px-3 py-2"
+                    required
+                  >
+                    {classOptions.map((className) => (
+                      <option key={className} value={className}>
+                        {className}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500">Tekan Ctrl (Windows) untuk pilih beberapa kelas.</p>
+                </div>
+
                 <button
                   type="submit"
-                  disabled={isUpdating}
+                  disabled={isUpdating || classOptions.length === 0}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}

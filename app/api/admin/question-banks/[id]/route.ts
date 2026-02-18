@@ -8,8 +8,17 @@ type RouteContext = {
 type UpdateQuestionBankPayload = {
   title?: string;
   subject?: string;
+  targetClasses?: string[];
   ownerTeacherId?: string;
 };
+
+function normalizeClassList(values: string[] | undefined) {
+  if (!values) {
+    return [] as string[];
+  }
+
+  return [...new Set(values.map((item) => item.trim()).filter((item) => item.length > 0))];
+}
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
@@ -18,7 +27,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const { data, error } = await supabase
       .from("question_banks")
-      .select("id, title, subject, owner_teacher_id, created_at, updated_at")
+      .select("id, title, subject, target_classes, owner_teacher_id, created_at, updated_at")
       .eq("id", id)
       .maybeSingle();
 
@@ -44,11 +53,12 @@ export async function PUT(request: Request, context: RouteContext) {
 
     const title = body.title?.trim();
     const subject = body.subject?.trim() || null;
+    const targetClasses = normalizeClassList(body.targetClasses);
     const ownerTeacherId = body.ownerTeacherId?.trim();
 
-    if (!title || !ownerTeacherId) {
+    if (!title || !ownerTeacherId || targetClasses.length === 0) {
       return NextResponse.json(
-        { error: "title dan ownerTeacherId wajib diisi" },
+        { error: "title, targetClasses, dan ownerTeacherId wajib diisi" },
         { status: 400 }
       );
     }
@@ -69,11 +79,32 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Pemilik bank soal harus guru" }, { status: 400 });
     }
 
+    const { data: existingClasses, error: classError } = await supabase
+      .from("profiles")
+      .select("class_name")
+      .eq("role", "student")
+      .in("class_name", targetClasses);
+
+    if (classError) {
+      return NextResponse.json({ error: classError.message }, { status: 500 });
+    }
+
+    const validClassSet = new Set(
+      (existingClasses ?? [])
+        .map((item) => (item as { class_name: string | null }).class_name)
+        .filter((value): value is string => Boolean(value))
+    );
+
+    if (targetClasses.some((item) => !validClassSet.has(item))) {
+      return NextResponse.json({ error: "Ada kelas yang tidak valid" }, { status: 400 });
+    }
+
     const { error } = await supabase
       .from("question_banks")
       .update({
         title,
         subject,
+        target_classes: targetClasses,
         owner_teacher_id: ownerTeacherId,
         updated_at: new Date().toISOString(),
       })

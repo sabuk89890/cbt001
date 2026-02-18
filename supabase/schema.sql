@@ -69,6 +69,7 @@ create table if not exists public.question_banks (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   subject text,
+  target_classes text[] not null default '{}'::text[],
   owner_teacher_id uuid not null references public.profiles(id) on delete restrict,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -85,6 +86,9 @@ create unique index if not exists subjects_name_lower_key
 
 alter table public.questions
   add column if not exists question_type text not null default 'multiple-choice';
+
+alter table public.question_banks
+  add column if not exists target_classes text[] not null default '{}'::text[];
 
 alter table public.questions
   add column if not exists bank_id uuid references public.question_banks(id) on delete set null;
