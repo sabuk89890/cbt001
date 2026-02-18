@@ -225,7 +225,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
 // --- MatchingQuestionUI ---
 // Fungsi harus di luar komponen dan hanya pakai const
 
-const MatchingQuestionUI: React.FC<MatchingQuestionUIProps> = ({ question, value, onChange, readOnly }) => {
+const MatchingQuestionUI = ({ question, value, onChange, readOnly }: MatchingQuestionUIProps) => {
   const lefts = normalizePairs(question.answerKey?.pairs ?? []).map((p) => p.left);
   const rights = (question.answerKey?.options && Array.isArray(question.answerKey.options)
     ? normalizeStringList(question.answerKey.options)
