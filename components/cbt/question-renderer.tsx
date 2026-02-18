@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { ExamQuestion } from "@/lib/cbt/types";
 
 type Pair = { left: string; right: string };
@@ -76,6 +77,8 @@ function normalizeTrueFalseStatements(input: unknown): TrueFalseStatement[] {
     })
     .filter((item): item is TrueFalseStatement => item !== null);
 }
+
+import MatchingQuestion from "./matching-question";
 
 export function QuestionRenderer({ index, question, value, onChange, readOnly = false }: Props) {
   const inputName = `q-${question.id}`;
@@ -221,38 +224,12 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       ) : null}
 
       {question.questionType === "matching" ? (
-        <div className="space-y-2">
-          {normalizePairs(question.answerKey.pairs).map((pair) => {
-            const selectedPairs = normalizePairs(value);
-            const selected = selectedPairs.find((item) => item.left === pair.left);
-            const rightOptions = normalizePairs(question.answerKey.pairs).map((item) => item.right);
-
-            return (
-              <div key={pair.left} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr]">
-                <p className="rounded-md border px-3 py-2 text-sm">{pair.left}</p>
-                <select
-                  value={selected?.right ?? ""}
-                  disabled={readOnly}
-                  onChange={(event) => {
-                    const current = normalizePairs(value).filter((item) => item.left !== pair.left);
-                    const next = event.target.value
-                      ? [...current, { left: pair.left, right: event.target.value }]
-                      : current;
-                    onChange?.(next);
-                  }}
-                  className="rounded-md border px-3 py-2 text-sm"
-                >
-                  <option value="">Pilih pasangan</option>
-                  {rightOptions.map((option) => (
-                    <option key={`${pair.left}-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            );
-          })}
-        </div>
+        <MatchingQuestion
+          answerKeyPairs={normalizePairs(question.answerKey.pairs)}
+          valuePairs={normalizePairs(value)}
+          onChange={onChange}
+          readOnly={readOnly}
+        />
       ) : null}
     </fieldset>
   );
