@@ -73,6 +73,9 @@ export default function AdminSubjectsPage() {
     }
   }
 
+  /**
+   * @param {{ id: string; name?: string }} subject
+   */
   async function handleDelete(subject) {
     const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
     if (!confirmed) {
