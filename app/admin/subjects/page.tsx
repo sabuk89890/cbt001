@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 
 export default function AdminSubjectsPage() {
+  /** @type {{ id: string; code: string; name: string; created_at: string }[]} */
   const [subjects, setSubjects] = useState([]);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
