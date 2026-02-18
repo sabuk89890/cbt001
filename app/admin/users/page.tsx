@@ -80,9 +80,11 @@ export default function AdminUsersPage() {
   const [editPhotoUrl, setEditPhotoUrl] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  async function loadUsers(role: UserRole) {
+  async function loadUsers(role: UserRole, options?: { preserveMessage?: boolean }) {
     setIsLoading(true);
-    setMessage("");
+    if (!options?.preserveMessage) {
+      setMessage("");
+    }
 
     try {
       const response = await fetch(`/api/admin/users?role=${role}`, { cache: "no-store" });
@@ -120,6 +122,27 @@ export default function AdminUsersPage() {
     () => users.filter((user) => activeRole === "student" && user.class_name === selectedClassView),
     [activeRole, selectedClassView, users]
   );
+
+  const displayedUsers = useMemo(() => {
+    if (activeRole === "student" && selectedClassView) {
+      return users.filter((user) => user.class_name === selectedClassView);
+    }
+
+    return users;
+  }, [activeRole, selectedClassView, users]);
+
+  const selectedVisibleIds = useMemo(
+    () => selectedIds.filter((id) => displayedUsers.some((user) => user.id === id)),
+    [displayedUsers, selectedIds]
+  );
+
+  useEffect(() => {
+    if (activeRole !== "student") {
+      return;
+    }
+
+    setSelectedIds((prev) => prev.filter((id) => displayedUsers.some((user) => user.id === id)));
+  }, [activeRole, displayedUsers]);
 
   useEffect(() => {
     if (activeRole !== "student") {
@@ -195,7 +218,7 @@ export default function AdminUsersPage() {
 
       setMessage("Data berhasil ditambahkan");
       resetForm();
-      await loadUsers(activeRole);
+      await loadUsers(activeRole, { preserveMessage: true });
     } catch {
       setMessage("Terjadi kesalahan saat menyimpan data pengguna");
     } finally {
@@ -222,7 +245,7 @@ export default function AdminUsersPage() {
       }
 
       setMessage(result.message ?? "Akun berhasil dihapus");
-      await loadUsers(activeRole);
+      await loadUsers(activeRole, { preserveMessage: true });
     } catch {
       setMessage("Terjadi kesalahan saat menghapus akun");
     }
@@ -292,7 +315,7 @@ export default function AdminUsersPage() {
       setMessage(result.message ?? "Data berhasil diperbarui");
       setIsEditModalOpen(false);
       setEditUserId(null);
-      await loadUsers(activeRole);
+      await loadUsers(activeRole, { preserveMessage: true });
     } catch {
       setMessage("Terjadi kesalahan saat memperbarui data pengguna");
     } finally {
@@ -307,12 +330,12 @@ export default function AdminUsersPage() {
   }
 
   async function handleBulkDeleteSelected() {
-    if (selectedIds.length === 0) {
+    if (selectedVisibleIds.length === 0) {
       setMessage("Pilih murid yang akan dihapus terlebih dahulu");
       return;
     }
 
-    if (!window.confirm(`Hapus ${selectedIds.length} murid terpilih?`)) {
+    if (!window.confirm(`Hapus ${selectedVisibleIds.length} murid terpilih?`)) {
       return;
     }
 
@@ -322,7 +345,7 @@ export default function AdminUsersPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ mode: "ids", ids: selectedIds }),
+        body: JSON.stringify({ mode: "ids", ids: selectedVisibleIds }),
       });
 
       const result = (await response.json()) as { deleted?: number; failed?: number; error?: string };
@@ -332,7 +355,7 @@ export default function AdminUsersPage() {
       }
 
       setMessage(`Hapus massal selesai. Berhasil: ${result.deleted ?? 0}, Gagal: ${result.failed ?? 0}`);
-      await loadUsers(activeRole);
+      await loadUsers(activeRole, { preserveMessage: true });
     } catch {
       setMessage("Terjadi kesalahan saat hapus massal");
     }
@@ -364,7 +387,7 @@ export default function AdminUsersPage() {
       }
 
       setMessage(`Hapus per kelas selesai. Berhasil: ${result.deleted ?? 0}, Gagal: ${result.failed ?? 0}`);
-      await loadUsers(activeRole);
+      await loadUsers(activeRole, { preserveMessage: true });
     } catch {
       setMessage("Terjadi kesalahan saat hapus per kelas");
     }
@@ -409,7 +432,7 @@ export default function AdminUsersPage() {
       }
 
       setMessage(`Import CSV selesai. Berhasil: ${result.imported ?? 0}, Gagal: ${result.failed ?? 0}`);
-      await loadUsers("student");
+      await loadUsers("student", { preserveMessage: true });
       setActiveRole("student");
     } catch {
       setMessage("Terjadi kesalahan saat memproses file CSV");
@@ -520,6 +543,8 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>
+
+          {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
 
           {photoUrl ? (
             <div className="mt-3">
@@ -648,7 +673,7 @@ export default function AdminUsersPage() {
                 onClick={handleBulkDeleteSelected}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white"
               >
-                Hapus Massal ({selectedIds.length})
+                Hapus Massal ({selectedVisibleIds.length})
               </button>
             ) : null}
           </div>
@@ -657,7 +682,7 @@ export default function AdminUsersPage() {
 
           {isLoading ? (
             <p className="text-sm text-slate-500">Memuat data...</p>
-          ) : users.length === 0 ? (
+          ) : displayedUsers.length === 0 ? (
             <p className="text-sm text-slate-500">Belum ada data</p>
           ) : (
             <div className="overflow-x-auto">
@@ -673,7 +698,7 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {displayedUsers.map((user) => (
                     <tr key={user.id} className="border-b border-slate-100">
                       {canManageStudentBulk ? (
                         <td className="px-2 py-2">

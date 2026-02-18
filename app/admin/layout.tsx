@@ -11,7 +11,6 @@ type AdminLayoutProps = {
 const menuItems = [
   { label: "Dashboard", icon: "📊", href: "/admin" },
   { label: "Pengguna", icon: "👥", href: "/admin/users" },
-  { label: "Mata Pelajaran", icon: "📚", href: "/admin/subjects" },
   { label: "Bank Soal", icon: "🗂️", href: "/admin/question-bank" },
   { label: "Review", icon: "✅", href: "/admin/review" },
 ];
