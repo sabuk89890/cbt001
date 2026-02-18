@@ -21,12 +21,13 @@ type BankQuestion = {
   subject: string | null;
   prompt: string;
   questionType: string;
-  correctAnswer: string;
+  correctAnswer?: string;
+  options?: string[];
   maxScore: number;
   answerKey: Record<string, unknown>;
 };
 
-type CreateMode = "essay" | "multiple-choice-complex" | "true-false" | "matching";
+type CreateMode = "essay" | "multiple-choice" | "multiple-choice-complex" | "true-false" | "matching";
 
 type TrueFalseRow = {
   id: string;
@@ -61,6 +62,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   const [optionC, setOptionC] = useState("");
   const [optionD, setOptionD] = useState("");
   const [selectedCorrectOptions, setSelectedCorrectOptions] = useState<string[]>([]);
+  const [selectedCorrectSingle, setSelectedCorrectSingle] = useState("");
 
   const [trueFalseRows, setTrueFalseRows] = useState<TrueFalseRow[]>([
     { id: `tf-${Date.now()}-1`, text: "", answer: "Benar" },
@@ -128,7 +130,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   function resetForm(mode: CreateMode) {
     setCreateMode(mode);
     setQuestionId(
-      `${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : mode === "true-false" ? "tf" : "match"}-${Date.now()}`
+      `${mode === "essay" ? "essay" : mode === "multiple-choice" ? "pg" : mode === "multiple-choice-complex" ? "pgk" : mode === "true-false" ? "tf" : "match"}-${Date.now()}`
     );
     setPrompt("");
     setAnswerKeySlash("");
@@ -139,6 +141,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setOptionC("");
     setOptionD("");
     setSelectedCorrectOptions([]);
+    setSelectedCorrectSingle("");
     setTrueFalseRows([{ id: `tf-${Date.now()}-1`, text: "", answer: "Benar" }]);
     setMatchingRows([
       { id: `m-${Date.now()}-1`, left: "", right: "" },
@@ -227,7 +230,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
       setQuestions(listResult.data ?? []);
     }
   }
-
   function populateFormForEdit(item: BankQuestion) {
     setEditId(item.id);
     setQuestionId(item.id);
@@ -236,15 +238,25 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setImageUrl(typeof (item.answerKey as any)?.imageUrl === "string" ? (item.answerKey as any).imageUrl : "");
 
     if (item.questionType === "multiple-choice-complex") {
-      const opts = Array.isArray(item.answerKey?.correctAnswers)
-        ? (item.answerKey.correctAnswers as string[])
-        : [];
+      const opts = Array.isArray(item.options) ? (item.options as string[]) : [];
       setOptionA(opts[0] ?? "");
       setOptionB(opts[1] ?? "");
       setOptionC(opts[2] ?? "");
       setOptionD(opts[3] ?? "");
       setSelectedCorrectOptions(Array.isArray(item.answerKey?.correctAnswers) ? (item.answerKey.correctAnswers as string[]) : []);
       setCreateMode("multiple-choice-complex");
+      return;
+    }
+
+    if (item.questionType === "multiple-choice") {
+      const opts = Array.isArray(item.options) ? (item.options as string[]) : [];
+      setOptionA(opts[0] ?? "");
+      setOptionB(opts[1] ?? "");
+      setOptionC(opts[2] ?? "");
+      setOptionD(opts[3] ?? "");
+      const correct = typeof item.answerKey?.correctAnswer === "string" ? (item.answerKey.correctAnswer as string) : typeof item.correctAnswer === "string" ? item.correctAnswer : "";
+      setSelectedCorrectSingle(correct);
+      setCreateMode("multiple-choice");
       return;
     }
 
@@ -274,7 +286,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   }
 
   async function handleDeleteQuestion(id: string) {
-    if (!confirm("Hapus soal ini? Tindakan tidak dapat dibatalkan.")) return;
     try {
       const res = await fetch(`/api/questions/${id}`, { method: "DELETE" });
       const json = await res.json();
@@ -310,6 +321,19 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
       }
     }
 
+    if (createMode === "multiple-choice") {
+      const options = [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()];
+      if (options.some((item) => item.length === 0)) {
+        setMessage("Pilihan ganda wajib memiliki 4 opsi terisi");
+        return;
+      }
+
+      if (!selectedCorrectSingle || !options.includes(selectedCorrectSingle)) {
+        setMessage("Pilih jawaban benar untuk soal pilihan ganda");
+        return;
+      }
+    }
+
     if (createMode === "true-false") {
       const validRows = trueFalseRows.filter((item) => item.text.trim().length > 0);
       if (validRows.length === 0) {
@@ -336,7 +360,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                 imageUrl,
               },
             }
-          : createMode === "multiple-choice-complex"
+            : createMode === "multiple-choice-complex"
             ? {
                 id: questionId,
                 bankId,
@@ -350,6 +374,21 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   imageUrl,
                 },
               }
+            : createMode === "multiple-choice"
+              ? {
+                  id: questionId,
+                  bankId,
+                  subject: bank?.subject ?? "",
+                  prompt,
+                  questionType: "multiple-choice",
+                  maxScore: Number(maxScore),
+                  options: [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()],
+                  correctAnswer: selectedCorrectSingle,
+                  answerKey: {
+                    correctAnswer: selectedCorrectSingle,
+                    imageUrl,
+                  },
+                }
             : createMode === "matching"
               ? {
                   id: questionId,
@@ -475,6 +514,15 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               </button>
               <button
                 type="button"
+                onClick={() => resetForm("multiple-choice")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "multiple-choice" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Pilihan Ganda
+              </button>
+              <button
+                type="button"
                 onClick={() => resetForm("matching")}
                 className={`rounded-lg px-4 py-2 text-sm ${
                   createMode === "matching" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
@@ -527,6 +575,18 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   className="rounded-lg border border-slate-300 px-3 py-2"
                   required
                 />
+              ) : createMode === "multiple-choice" ? (
+                <div className="grid gap-2">
+                  <p className="text-sm font-medium text-slate-700">4 Opsi Jawaban (1 benar)</p>
+                  <div className="grid gap-2">
+                    {[{v:optionA,onChange:setOptionA,placeholder:'Opsi A'},{v:optionB,onChange:setOptionB,placeholder:'Opsi B'},{v:optionC,onChange:setOptionC,placeholder:'Opsi C'},{v:optionD,onChange:setOptionD,placeholder:'Opsi D'}].map((opt,i)=>(
+                      <label key={i} className="flex items-center gap-2">
+                        <input type="radio" name="single-correct" checked={selectedCorrectSingle===opt.v} onChange={()=>setSelectedCorrectSingle(opt.v)} />
+                        <input type="text" placeholder={opt.placeholder} value={opt.v} onChange={(e)=>opt.onChange(e.target.value)} className="flex-1 rounded-lg border border-slate-300 px-3 py-2" required />
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ) : createMode === "multiple-choice-complex" ? (
                 <div className="grid gap-2">
                   <p className="text-sm font-medium text-slate-700">4 Opsi Jawaban (wajib 4)</p>
@@ -701,11 +761,18 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               </label>
 
               {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt="Preview gambar soal"
-                  className="max-h-56 rounded-lg border object-contain"
-                />
+                <div className="flex items-start gap-3">
+                  <img src={imageUrl} alt="Preview gambar soal" className="max-h-56 rounded-lg border object-contain" />
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="rounded-md border border-red-300 px-3 py-1 text-sm text-red-600"
+                    >
+                      Hapus Gambar
+                    </button>
+                  </div>
+                </div>
               ) : null}
 
               <button
