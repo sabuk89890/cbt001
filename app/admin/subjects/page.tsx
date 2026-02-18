@@ -43,11 +43,7 @@ export default function AdminSubjectsPage() {
     void loadSubjects();
   }, []);
 
-  /**
-   * @param {import('react').FormEvent<HTMLFormElement>} event
-   */
-  async function handleCreate(event) {
-    event.preventDefault();
+  async function handleCreate() {
     setIsSaving(true);
     setMessage("");
 
@@ -164,7 +160,7 @@ export default function AdminSubjectsPage() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-lg font-semibold">Tambah Mata Pelajaran</h2>
-          <form onSubmit={handleCreate} className="grid gap-3 md:grid-cols-2">
+          <form onSubmit={(event) => { event.preventDefault(); void handleCreate(); }} className="grid gap-3 md:grid-cols-2">
             <input
               type="text"
               placeholder="Kode (contoh: MTK)"
