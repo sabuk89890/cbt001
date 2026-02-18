@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient, createSupabaseAuthClient } from "@/lib/supabase/server";
 
 type LoginPayload = {
-  identifier?: string;
+  username?: string;
   password?: string;
   role?: "admin" | "student";
 };
@@ -11,9 +11,9 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LoginPayload;
 
-    if (!body.identifier || !body.password || !body.role) {
+    if (!body.username || !body.password || !body.role) {
       return NextResponse.json(
-        { error: "identifier, password, dan role wajib diisi" },
+        { error: "username, password, dan role wajib diisi" },
         { status: 400 }
       );
     }
@@ -21,8 +21,29 @@ export async function POST(request: Request) {
     const authClient = createSupabaseAuthClient();
     const adminClient = createSupabaseAdminClient();
 
+    const rawUsername = body.username.trim();
+
+    const { data: profileByUsername, error: profileLookupError } = await adminClient
+      .from("profiles")
+      .select("email")
+      .eq("username", rawUsername)
+      .maybeSingle();
+
+    if (profileLookupError) {
+      return NextResponse.json(
+        { error: `Gagal mencari username: ${profileLookupError.message}` },
+        { status: 500 }
+      );
+    }
+
+    const emailForAuth = profileByUsername?.email;
+
+    if (!emailForAuth) {
+      return NextResponse.json({ error: "Username tidak ditemukan" }, { status: 401 });
+    }
+
     const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-      email: body.identifier,
+      email: emailForAuth,
       password: body.password,
     });
 
@@ -65,7 +86,7 @@ export async function POST(request: Request) {
       user: {
         id: authData.user.id,
         role: profile.role,
-        identifier: authData.user.email,
+        username: rawUsername,
       },
       session: {
         accessToken: authData.session?.access_token,
