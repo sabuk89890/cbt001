@@ -3,6 +3,7 @@
 // import type removed for Turbopack compatibility
 import { getRandomColor } from "../../lib/utils/color";
 import { useRef, useState } from "react";
+import { MatchingQuestionUI } from "./matching-question-ui";
 
 
 function normalizePairs(input) {
@@ -273,11 +274,11 @@ const MatchingQuestionUI = ({ question, value, onChange, readOnly }) => {
     );
   });
 
-  function handleLeftClick(left: string) {
+  function handleLeftClick(left) {
     if (readOnly) return;
     setPendingLeft(left === pendingLeft ? null : left);
   }
-  function handleRightClick(right: string) {
+  function handleRightClick(right) {
     if (readOnly || !pendingLeft) return;
     // Remove if already paired
     const filtered = selectedPairs.filter((p) => p.left !== pendingLeft && p.right !== right);
@@ -288,7 +289,7 @@ const MatchingQuestionUI = ({ question, value, onChange, readOnly }) => {
     setPendingLeft(null);
     onChange?.(next);
   }
-  function handleRemovePair(left: string) {
+  function handleRemovePair(left) {
     if (readOnly) return;
     const next = selectedPairs.filter((p) => p.left !== left);
     onChange?.(next);
