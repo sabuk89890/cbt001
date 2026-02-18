@@ -7,7 +7,7 @@ import {
 } from "@/lib/cbt/question-engine";
 
 type RouteContext = {
-  params: Promise<{ sessionId: string; submissionId: string }>;
+  params: Promise<{ id: string; submissionId: string }>;
 };
 
 type ManualGradePayload = {
@@ -22,7 +22,7 @@ type ManualGradePayload = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const { sessionId, submissionId } = await context.params;
+    const { id, submissionId } = await context.params;
     const supabase = createSupabaseAdminClient();
 
     const { data: submission, error: submissionError } = await supabase
@@ -31,7 +31,7 @@ export async function GET(_request: Request, context: RouteContext) {
         "id, session_id, student_id, answers, score, auto_score, manual_adjustment, status, needs_manual_review, review_status, grading_detail"
       )
       .eq("id", submissionId)
-      .eq("session_id", sessionId)
+      .eq("session_id", id)
       .maybeSingle();
 
     if (submissionError) {
@@ -105,7 +105,7 @@ function clamp(value: number, min: number, max: number) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const { sessionId, submissionId } = await context.params;
+    const { id, submissionId } = await context.params;
     const body = (await request.json()) as ManualGradePayload;
 
     if (!body.essayScores?.length) {
@@ -121,7 +121,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       .from("exam_submissions")
       .select("id, session_id, grading_detail, auto_score")
       .eq("id", submissionId)
-      .eq("session_id", sessionId)
+      .eq("session_id", id)
       .maybeSingle();
 
     if (submissionError) {
@@ -188,7 +188,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", submissionId)
-      .eq("session_id", sessionId);
+      .eq("session_id", id);
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -197,7 +197,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({
       message: "Koreksi manual berhasil disimpan",
       submissionId,
-      sessionId,
+      sessionId: id,
       score: finalPercentage,
       status,
       manualAdjustment,

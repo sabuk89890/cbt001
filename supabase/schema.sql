@@ -176,7 +176,7 @@ create index if not exists idx_session_questions_participant on public.session_q
 create index if not exists idx_exam_participants_session_status on public.exam_participants(session_id, status);
 
 -- view: counts per session per status
-create view if not exists public.view_session_participant_counts as
+create or replace view public.view_session_participant_counts as
 select session_id, status, count(*) as cnt
 from public.exam_participants
 group by session_id, status;
@@ -257,25 +257,42 @@ alter table public.question_banks enable row level security;
 alter table public.exam_sessions enable row level security;
 alter table public.exam_submissions enable row level security;
 
-create policy "students can read own profile"
-on public.profiles
-for select
-using (auth.uid() = id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'profiles' and policyname = 'students can read own profile'
+  ) then
+    execute $pol$CREATE POLICY "students can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);$pol$;
+  end if;
+end $$;
 
-create policy "authenticated users can read questions"
-on public.questions
-for select
-to authenticated
-using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'questions' and policyname = 'authenticated users can read questions'
+  ) then
+    execute $pol$CREATE POLICY "authenticated users can read questions" ON public.questions FOR SELECT TO authenticated USING (true);$pol$;
+  end if;
+end $$;
 
-create policy "authenticated users can read subjects"
-on public.subjects
-for select
-to authenticated
-using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'subjects' and policyname = 'authenticated users can read subjects'
+  ) then
+    execute $pol$CREATE POLICY "authenticated users can read subjects" ON public.subjects FOR SELECT TO authenticated USING (true);$pol$;
+  end if;
+end $$;
 
-create policy "authenticated users can read question banks"
-on public.question_banks
-for select
-to authenticated
-using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'question_banks' and policyname = 'authenticated users can read question banks'
+  ) then
+    execute $pol$CREATE POLICY "authenticated users can read question banks" ON public.question_banks FOR SELECT TO authenticated USING (true);$pol$;
+  end if;
+end $$;

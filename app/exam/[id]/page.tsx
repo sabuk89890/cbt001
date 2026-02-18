@@ -5,7 +5,7 @@ import { QuestionRenderer } from "@/components/cbt/question-renderer";
 import type { ExamQuestion } from "@/lib/cbt/types";
 
 type ExamSessionPageProps = {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export default function ExamSessionPage({ params }: ExamSessionPageProps) {
@@ -19,7 +19,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   useEffect(() => {
     const init = async () => {
       const resolved = await params;
-      setSessionId(resolved.sessionId);
+      setSessionId(resolved.id);
 
       try {
         const response = await fetch("/api/questions", { cache: "no-store" });

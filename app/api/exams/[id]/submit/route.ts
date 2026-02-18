@@ -14,12 +14,12 @@ type SubmitPayload = {
 };
 
 type RouteContext = {
-  params: Promise<{ sessionId: string }>;
+  params: Promise<{ id: string }>;
 };
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const { sessionId } = await context.params;
+    const { id } = await context.params;
     const body = (await request.json()) as SubmitPayload;
 
     if (!body.answers || Object.keys(body.answers).length === 0) {
@@ -32,7 +32,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { data: questions, error: questionsError } = await supabase
       .from("questions")
       .select("id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
-      .in("id", questionIds);
+      .in("id", questionIds as string[]);
 
     if (questionsError) {
       return NextResponse.json({ error: questionsError.message }, { status: 500 });
@@ -62,7 +62,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const { error: sessionError } = await supabase
       .from("exam_sessions")
-      .upsert({ id: sessionId }, { onConflict: "id" });
+      .upsert({ id }, { onConflict: "id" });
 
     if (sessionError) {
       return NextResponse.json({ error: sessionError.message }, { status: 500 });
@@ -71,7 +71,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { data: submission, error: submissionError } = await supabase
       .from("exam_submissions")
       .insert({
-        session_id: sessionId,
+        session_id: id,
         student_id: body.studentId ?? null,
         answers: body.answers,
         score,
@@ -90,7 +90,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     return NextResponse.json({
-      sessionId,
+      sessionId: id,
       submissionId: submission.id,
       submittedAt: submission.created_at,
       total,

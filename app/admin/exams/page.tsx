@@ -23,6 +23,8 @@ export default function AdminExamsPage() {
   const [message, setMessage] = useState("");
 
   const supabaseRef = useRef<SupabaseClient | null>(null);
+  const subscriptionRef = useRef<any | null>(null);
+  const [metrics, setMetrics] = useState<any | null>(null);
 
   useEffect(() => {
     void fetchSessions();
@@ -66,8 +68,16 @@ export default function AdminExamsPage() {
     if (!supabaseRef.current) supabaseRef.current = makeClient();
     const client = supabaseRef.current;
 
-    client.channel(`exam-session-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_participants', filter: `session_id=eq.${id}` }, (payload) => {
+    // unsubscribe previous
+    if (subscriptionRef.current) {
+      try { client.removeChannel(subscriptionRef.current); } catch (e) { /* ignore */ }
+      subscriptionRef.current = null;
+    }
+
+    const channel = client.channel(`exam-session-${id}`);
+    subscriptionRef.current = channel;
+
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'exam_participants', filter: `session_id=eq.${id}` }, (payload) => {
         // update participant list in-place
         setSessionDetail((prev: any) => {
           if (!prev) return prev;
@@ -85,10 +95,26 @@ export default function AdminExamsPage() {
             const idx = parts.findIndex((p: any) => p.id === record.id);
             if (idx >= 0) parts.splice(idx, 1);
           }
+        // also refresh aggregated metrics
+        fetchMetrics(id).catch(()=>{});
           return { ...prev, participants: parts };
         });
       })
       .subscribe();
+
+    // initial metrics
+    void fetchMetrics(id);
+  }
+
+  async function fetchMetrics(sessionId: string) {
+    try {
+      const res = await fetch(`/api/admin/session-metrics?sessionId=${encodeURIComponent(sessionId)}`);
+      if (!res.ok) return;
+      const j = await res.json();
+      setMetrics(j.data ?? null);
+    } catch (e) {
+      // ignore
+    }
   }
 
   async function simulateStart(sessionId: string) {
@@ -162,7 +188,10 @@ export default function AdminExamsPage() {
               <div className="mt-2">
                 <p className="text-sm">{sessionDetail.session?.title}</p>
                 <div className="mt-3">
-                  <h4 className="font-medium">Peserta</h4>
+                    <h4 className="font-medium">Peserta</h4>
+                    {metrics ? (
+                      <div className="text-sm text-slate-600 mt-2">In progress: {metrics.in_progress ?? 0} • Finished: {metrics.finished ?? 0} • Not started: {metrics.not_started ?? 0} • Stopped: {metrics.stopped ?? 0}</div>
+                    ) : null}
                   <div className="mt-2 space-y-2">
                     {(sessionDetail.participants ?? []).map((p: any) => (
                       <div key={p.id} className="flex items-center justify-between rounded p-2 border">
