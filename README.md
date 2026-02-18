@@ -5,11 +5,13 @@ Starter project CBT (Computer Based Test) dengan Next.js App Router + TypeScript
 ## Fitur Awal
 
 - Login admin dan siswa via Supabase Auth + validasi role
+- Manajemen mata pelajaran (buat/hapus)
 - Bank soal tersimpan di Supabase Postgres
 - Dukungan tipe soal: pilihan ganda, pilihan ganda kompleks, essay, benar/salah, menjodohkan
 - Submit ujian dengan auto-grading lintas tipe soal
 - Essay mendukung koreksi otomatis dan koreksi ulang manual oleh guru
 - API route untuk auth, bank soal, submit ujian, dan manual regrading
+- Manajemen pengguna guru/murid + tampilan siswa per kelas lengkap dengan foto
 
 ## Jalankan Lokal
 
@@ -59,6 +61,9 @@ Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles
 - `DELETE /api/admin/users/:id`
 - `POST /api/admin/users/import-students`
 - `POST /api/admin/users/bulk-delete`
+- `GET /api/admin/subjects`
+- `POST /api/admin/subjects`
+- `DELETE /api/admin/subjects/:id`
 - `GET /api/questions`
 - `POST /api/questions`
 - `PUT /api/questions/:id`

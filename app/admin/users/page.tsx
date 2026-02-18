@@ -67,6 +67,7 @@ export default function AdminUsersPage() {
   const [deleteClassName, setDeleteClassName] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
   const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedClassView, setSelectedClassView] = useState("");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editUserId, setEditUserId] = useState<string | null>(null);
@@ -104,6 +105,37 @@ export default function AdminUsersPage() {
   useEffect(() => {
     void loadUsers(activeRole);
   }, [activeRole]);
+
+  const classOptions = useMemo(() => {
+    if (activeRole !== "student") {
+      return [] as string[];
+    }
+
+    return [...new Set(users.map((user) => user.class_name).filter((value): value is string => Boolean(value)))].sort(
+      (a, b) => a.localeCompare(b)
+    );
+  }, [activeRole, users]);
+
+  const studentsInSelectedClass = useMemo(
+    () => users.filter((user) => activeRole === "student" && user.class_name === selectedClassView),
+    [activeRole, selectedClassView, users]
+  );
+
+  useEffect(() => {
+    if (activeRole !== "student") {
+      setSelectedClassView("");
+      return;
+    }
+
+    if (classOptions.length === 0) {
+      setSelectedClassView("");
+      return;
+    }
+
+    if (!classOptions.includes(selectedClassView)) {
+      setSelectedClassView(classOptions[0]);
+    }
+  }, [activeRole, classOptions, selectedClassView]);
 
   function resetForm() {
     setUsername("");
@@ -547,6 +579,63 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {canManageStudentBulk ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Lihat Siswa per Kelas</h2>
+            {classOptions.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">Belum ada data kelas untuk ditampilkan.</p>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {classOptions.map((classOption) => (
+                    <button
+                      key={classOption}
+                      type="button"
+                      onClick={() => setSelectedClassView(classOption)}
+                      className={`rounded-lg px-3 py-2 text-sm ${
+                        selectedClassView === classOption
+                          ? "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {classOption}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {studentsInSelectedClass.map((student) => (
+                    <article
+                      key={student.id}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {student.photo_url ? (
+                          <img
+                            src={student.photo_url}
+                            alt={`Foto ${student.full_name ?? student.username ?? "murid"}`}
+                            className="h-12 w-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-xs text-slate-500">
+                            No Foto
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">
+                            {student.full_name ?? "Tanpa Nama"}
+                          </p>
+                          <p className="text-xs text-slate-500">{student.username ?? "-"}</p>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
         ) : null}
 

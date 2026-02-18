@@ -58,6 +58,16 @@ create table if not exists public.questions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.subjects (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists subjects_name_lower_key
+  on public.subjects (lower(name));
+
 alter table public.questions
   add column if not exists question_type text not null default 'multiple-choice';
 
@@ -143,6 +153,7 @@ end $$;
 
 alter table public.profiles enable row level security;
 alter table public.questions enable row level security;
+alter table public.subjects enable row level security;
 alter table public.exam_sessions enable row level security;
 alter table public.exam_submissions enable row level security;
 
@@ -153,6 +164,12 @@ using (auth.uid() = id);
 
 create policy "authenticated users can read questions"
 on public.questions
+for select
+to authenticated
+using (true);
+
+create policy "authenticated users can read subjects"
+on public.subjects
 for select
 to authenticated
 using (true);

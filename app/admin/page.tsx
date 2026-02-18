@@ -27,6 +27,7 @@ type DashboardSummary = {
 const menuItems = [
   { label: "Dashboard", icon: "📊", active: true, href: "/admin" },
   { label: "Pengguna", icon: "👥", href: "/admin/users" },
+  { label: "Mata Pelajaran", icon: "📚", href: "/admin/subjects" },
   { label: "Ujian", icon: "📝" },
   { label: "Laporan", icon: "📈" },
   { label: "Pengaturan", icon: "⚙️" },
