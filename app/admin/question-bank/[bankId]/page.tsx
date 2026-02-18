@@ -26,9 +26,15 @@ type BankQuestion = {
   answerKey: Record<string, unknown>;
 };
 
-const MAX_IMAGE_SIZE = 100 * 1024;
+type CreateMode = "essay" | "multiple-choice-complex" | "true-false";
 
-type CreateMode = "essay" | "multiple-choice-complex";
+type TrueFalseRow = {
+  id: string;
+  text: string;
+  answer: "Benar" | "Salah";
+};
+
+const MAX_IMAGE_SIZE = 100 * 1024;
 
 export default function QuestionBankDetailPage({ params }: PageProps) {
   const [bankId, setBankId] = useState("");
@@ -49,6 +55,10 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   const [optionC, setOptionC] = useState("");
   const [optionD, setOptionD] = useState("");
   const [selectedCorrectOptions, setSelectedCorrectOptions] = useState<string[]>([]);
+
+  const [trueFalseRows, setTrueFalseRows] = useState<TrueFalseRow[]>([
+    { id: `tf-${Date.now()}-1`, text: "", answer: "Benar" },
+  ]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -104,7 +114,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
 
   function resetForm(mode: CreateMode) {
     setCreateMode(mode);
-    setQuestionId(`${mode === "essay" ? "essay" : "pgk"}-${Date.now()}`);
+    setQuestionId(`${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : "tf"}-${Date.now()}`);
     setPrompt("");
     setAnswerKeySlash("");
     setMaxScore("10");
@@ -114,6 +124,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setOptionC("");
     setOptionD("");
     setSelectedCorrectOptions([]);
+    setTrueFalseRows([{ id: `tf-${Date.now()}-1`, text: "", answer: "Benar" }]);
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -139,6 +150,30 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   function toggleCorrectOption(option: string) {
     setSelectedCorrectOptions((prev) =>
       prev.includes(option) ? prev.filter((item) => item !== option) : [...prev, option]
+    );
+  }
+
+  function addTrueFalseRow() {
+    setTrueFalseRows((prev) => [
+      ...prev,
+      { id: `tf-${Date.now()}-${prev.length + 1}`, text: "", answer: "Benar" },
+    ]);
+  }
+
+  function removeTrueFalseRow(id: string) {
+    setTrueFalseRows((prev) => (prev.length <= 1 ? prev : prev.filter((item) => item.id !== id)));
+  }
+
+  function updateTrueFalseRow(id: string, field: "text" | "answer", value: string) {
+    setTrueFalseRows((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: field === "answer" ? (value as "Benar" | "Salah") : value,
+            }
+          : item
+      )
     );
   }
 
@@ -171,6 +206,14 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
       }
     }
 
+    if (createMode === "true-false") {
+      const validRows = trueFalseRows.filter((item) => item.text.trim().length > 0);
+      if (validRows.length === 0) {
+        setMessage("Soal benar/salah minimal memiliki 1 baris pertanyaan");
+        return;
+      }
+    }
+
     setIsSaving(true);
     setMessage("");
 
@@ -189,19 +232,38 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                 imageUrl,
               },
             }
-          : {
-              id: questionId,
-              bankId,
-              subject: bank?.subject ?? "",
-              prompt,
-              questionType: "multiple-choice-complex",
-              maxScore: Number(maxScore),
-              options: [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()],
-              answerKey: {
-                correctAnswers: selectedCorrectOptions,
-                imageUrl,
-              },
-            };
+          : createMode === "multiple-choice-complex"
+            ? {
+                id: questionId,
+                bankId,
+                subject: bank?.subject ?? "",
+                prompt,
+                questionType: "multiple-choice-complex",
+                maxScore: Number(maxScore),
+                options: [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()],
+                answerKey: {
+                  correctAnswers: selectedCorrectOptions,
+                  imageUrl,
+                },
+              }
+            : {
+                id: questionId,
+                bankId,
+                subject: bank?.subject ?? "",
+                prompt,
+                questionType: "true-false",
+                maxScore: Number(maxScore),
+                options: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => item.text.trim()),
+                answerKey: {
+                  statements: trueFalseRows
+                    .filter((item) => item.text.trim().length > 0)
+                    .map((item) => ({
+                      text: item.text.trim(),
+                      isTrue: item.answer === "Benar",
+                    })),
+                  imageUrl,
+                },
+              };
 
       const response = await fetch("/api/questions", {
         method: "POST",
@@ -217,14 +279,16 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
       };
 
       if (!response.ok) {
-        setMessage(result.error ?? `Gagal membuat soal ${createMode === "essay" ? "essay" : "PG kompleks"}`);
+        setMessage(result.error ?? "Gagal membuat soal");
         return;
       }
 
       setMessage(
         createMode === "essay"
           ? "Soal essay berhasil dibuat"
-          : "Soal pilihan ganda kompleks berhasil dibuat"
+          : createMode === "multiple-choice-complex"
+            ? "Soal pilihan ganda kompleks berhasil dibuat"
+            : "Soal benar/salah berhasil dibuat"
       );
       resetForm(createMode);
       await refreshQuestions();
@@ -279,6 +343,15 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               >
                 Pilihan Ganda Kompleks
               </button>
+              <button
+                type="button"
+                onClick={() => resetForm("true-false")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "true-false" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Benar / Salah
+              </button>
             </div>
 
             <form onSubmit={handleCreateQuestion} className="grid gap-3">
@@ -295,7 +368,9 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                 placeholder={
                   createMode === "essay"
                     ? "Tulis pertanyaan essay"
-                    : "Tulis pertanyaan pilihan ganda kompleks"
+                    : createMode === "multiple-choice-complex"
+                      ? "Tulis pertanyaan pilihan ganda kompleks"
+                      : "Instruksi soal benar/salah"
                 }
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
@@ -313,7 +388,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   className="rounded-lg border border-slate-300 px-3 py-2"
                   required
                 />
-              ) : (
+              ) : createMode === "multiple-choice-complex" ? (
                 <div className="grid gap-2">
                   <p className="text-sm font-medium text-slate-700">4 Opsi Jawaban (wajib 4)</p>
                   <input
@@ -363,6 +438,47 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                     ))}
                   </div>
                 </div>
+              ) : (
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-700">Daftar Benar / Salah</p>
+                    <button
+                      type="button"
+                      onClick={addTrueFalseRow}
+                      className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                    >
+                      Tambah Baris
+                    </button>
+                  </div>
+
+                  {trueFalseRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px_auto]">
+                      <input
+                        type="text"
+                        placeholder="Teks pernyataan"
+                        value={row.text}
+                        onChange={(event) => updateTrueFalseRow(row.id, "text", event.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2"
+                        required
+                      />
+                      <select
+                        value={row.answer}
+                        onChange={(event) => updateTrueFalseRow(row.id, "answer", event.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2"
+                      >
+                        <option value="Benar">Benar</option>
+                        <option value="Salah">Salah</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => removeTrueFalseRow(row.id)}
+                        className="rounded-lg border border-red-300 px-3 py-2 text-xs text-red-600"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
 
               <input
@@ -397,7 +513,9 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   ? "Menyimpan..."
                   : createMode === "essay"
                     ? "Simpan Soal Essay"
-                    : "Simpan Soal Pilihan Ganda Kompleks"}
+                    : createMode === "multiple-choice-complex"
+                      ? "Simpan Soal Pilihan Ganda Kompleks"
+                      : "Simpan Soal Benar / Salah"}
               </button>
             </form>
           </section>

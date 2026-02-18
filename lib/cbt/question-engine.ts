@@ -13,6 +13,11 @@ type Pair = {
   right: string;
 };
 
+type TrueFalseStatement = {
+  text: string;
+  isTrue: boolean;
+};
+
 export type QuestionPayload = {
   id?: string;
   bankId?: string;
@@ -137,6 +142,30 @@ function normalizeMatchingPairs(input: unknown): Pair[] {
     .filter((item): item is Pair => item !== null);
 }
 
+function normalizeTrueFalseStatements(input: unknown): TrueFalseStatement[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const text = "text" in item && typeof item.text === "string" ? item.text.trim() : "";
+      const answerValue = "isTrue" in item ? item.isTrue : "answer" in item ? item.answer : null;
+      const parsed = parseBooleanAnswer(answerValue);
+
+      if (!text || parsed === null) {
+        return null;
+      }
+
+      return { text, isTrue: parsed };
+    })
+    .filter((item): item is TrueFalseStatement => item !== null);
+}
+
 export function normalizeQuestionPayload(body: QuestionPayload):
   | { ok: true; data: NormalizedQuestion }
   | { ok: false; error: string } {
@@ -234,6 +263,27 @@ export function normalizeQuestionPayload(body: QuestionPayload):
   }
 
   if (questionType === "true-false") {
+    const statements = normalizeTrueFalseStatements(
+      (body.answerKey as { statements?: unknown })?.statements
+    );
+
+    if (statements.length > 0) {
+      return {
+        ok: true,
+        data: {
+          id,
+          bankId: bankId || null,
+          subject: subject || null,
+          prompt,
+          questionType,
+          maxScore,
+          options: statements.map((item) => item.text),
+          answerKey: { statements },
+          legacyCorrectAnswer: JSON.stringify(statements),
+        },
+      };
+    }
+
     const parsed = parseBooleanAnswer(
       typeof body.correctAnswer !== "undefined"
         ? body.correctAnswer
@@ -415,6 +465,31 @@ export function gradeQuestion(question: QuestionRow, submittedAnswer: unknown): 
   }
 
   if (questionType === "true-false") {
+    const statements = normalizeTrueFalseStatements(
+      (question.answer_key as { statements?: unknown }).statements
+    );
+
+    if (statements.length > 0) {
+      const submittedStatements = normalizeTrueFalseStatements(submittedAnswer);
+      const expectedMap = new Map(statements.map((item) => [item.text, item.isTrue]));
+      const submittedMap = new Map(submittedStatements.map((item) => [item.text, item.isTrue]));
+      const correctCount = statements.filter((item) => submittedMap.get(item.text) === item.isTrue).length;
+      const ratio = statements.length > 0 ? correctCount / statements.length : 0;
+      const score = Math.round(clamp(ratio, 0, 1) * maxScore);
+
+      return {
+        questionId: question.id,
+        questionType,
+        maxScore,
+        submittedAnswer,
+        autoScore: score,
+        manualScore: null,
+        finalScore: score,
+        isAutoCorrect: true,
+        needsManualReview: false,
+      };
+    }
+
     const expected = parseBooleanAnswer((question.answer_key as { correctAnswer?: unknown }).correctAnswer);
     const answer = parseBooleanAnswer(submittedAnswer);
     const isCorrect = answer !== null && expected !== null && answer === expected;
