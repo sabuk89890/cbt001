@@ -26,7 +26,13 @@ export function LoginScreen() {
         }),
       });
 
-      const result = (await response.json()) as { message?: string; error?: string };
+      const result = (await response.json()) as {
+        message?: string;
+        error?: string;
+        user?: {
+          role?: string;
+        };
+      };
 
       if (!response.ok) {
         setMessage(result.error ?? "Login gagal");
@@ -34,6 +40,11 @@ export function LoginScreen() {
       }
 
       setMessage(result.message ?? "Login berhasil");
+
+      const userRole = result.user?.role;
+      if (userRole === "admin") {
+        window.location.assign("/admin");
+      }
     } catch {
       setMessage("Terjadi kesalahan saat menghubungi server");
     } finally {
