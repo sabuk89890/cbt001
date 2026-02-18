@@ -70,8 +70,8 @@ export default function AdminDashboardPage() {
               </div>
               {isSidebarOpen ? (
                 <div>
-                  <p className="text-3xl font-semibold text-slate-800">CBT Admin</p>
-                  <p className="text-lg text-slate-500">System</p>
+                  <p className="text-3xl font-semibold text-slate-800">CBT SMP Negeri 1 Bukit</p>
+                  <p className="text-lg text-slate-500">Versi 3.0.9</p>
                 </div>
               ) : null}
             </div>
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
               {isSidebarOpen ? (
                 <div>
                   <p className="text-lg font-medium text-slate-800">Administrator</p>
-                  <p className="text-base text-slate-500">Admin</p>
+                  <p className="text-base text-slate-500">Pengembang Feri Kurniawan, M.Pd,</p>
                 </div>
               ) : null}
             </div>
