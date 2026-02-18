@@ -2,10 +2,11 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  role text not null check (role in ('admin', 'student')),
+  role text not null check (role in ('admin', 'guru', 'student')),
   username text,
   full_name text,
   class_name text,
+  photo_url text,
   created_at timestamptz not null default now()
 );
 
@@ -14,6 +15,24 @@ alter table public.profiles
 
 alter table public.profiles
   add column if not exists username text;
+
+alter table public.profiles
+  add column if not exists photo_url text;
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_role_check'
+  ) then
+    alter table public.profiles drop constraint profiles_role_check;
+  end if;
+
+  alter table public.profiles
+    add constraint profiles_role_check
+    check (role in ('admin', 'guru', 'student'));
+end $$;
 
 do $$
 begin

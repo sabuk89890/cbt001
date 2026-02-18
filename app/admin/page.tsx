@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type DashboardCardMeta = {
@@ -24,8 +25,8 @@ type DashboardSummary = {
 };
 
 const menuItems = [
-  { label: "Dashboard", icon: "📊", active: true },
-  { label: "Pengguna", icon: "👥" },
+  { label: "Dashboard", icon: "📊", active: true, href: "/admin" },
+  { label: "Pengguna", icon: "👥", href: "/admin/users" },
   { label: "Ujian", icon: "📝" },
   { label: "Laporan", icon: "📈" },
   { label: "Pengaturan", icon: "⚙️" },
@@ -158,9 +159,9 @@ export default function AdminDashboardPage() {
             {menuItems.map((item) => {
               const isActive = item.active;
               return (
-                <button
+                <Link
                   key={item.label}
-                  type="button"
+                  href={item.href ?? "#"}
                   className={`flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xl transition ${
                     isActive
                       ? "border-l-4 border-l-blue-500 bg-blue-100 text-slate-900"
@@ -171,7 +172,7 @@ export default function AdminDashboardPage() {
                     {item.icon}
                   </span>
                   {isSidebarOpen ? <span>{item.label}</span> : null}
-                </button>
+                </Link>
               );
             })}
           </nav>

@@ -52,6 +52,13 @@ Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles
 
 ## Endpoint API
 
+- `GET /api/admin/dashboard-summary`
+- `GET /api/admin/users?role=guru|student`
+- `POST /api/admin/users`
+- `PUT /api/admin/users/:id`
+- `DELETE /api/admin/users/:id`
+- `POST /api/admin/users/import-students`
+- `POST /api/admin/users/bulk-delete`
 - `GET /api/questions`
 - `POST /api/questions`
 - `PUT /api/questions/:id`
@@ -67,6 +74,12 @@ Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles
 - `essay`: string
 - `true-false`: `"Benar" | "Salah" | true | false`
 - `matching`: `{ left: string; right: string }[]`
+
+## Format CSV Import Murid
+
+- Download template: [public/templates/student-import-template.csv](public/templates/student-import-template.csv)
+- Header wajib: `username,fullName,className`
+- Header opsional: `password,email,photoUrl`
 
 ## Manual Regrade Essay
 
