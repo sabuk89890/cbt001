@@ -361,11 +361,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
           keywords,
           minKeywordMatch,
           imageUrl,
-          // Respect client-provided allowManualReview if present, otherwise default to acceptedAnswers.length === 0
-          allowManualReview:
-            typeof (body.answerKey as { allowManualReview?: unknown })?.allowManualReview === "boolean"
-              ? Boolean((body.answerKey as { allowManualReview?: unknown })?.allowManualReview)
-              : acceptedAnswers.length === 0,
+          allowManualReview: acceptedAnswers.length === 0,
         },
         legacyCorrectAnswer: modelAnswer,
       },
