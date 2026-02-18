@@ -1,279 +1,194 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { QUESTION_TYPES, type QuestionType } from "@/lib/cbt/question-engine";
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
-type Question = {
+type TeacherOption = {
   id: string;
-  subject: string | null;
-  prompt: string;
-  questionType: QuestionType;
-  options: string[];
-  correctAnswer: string;
-  answerKey: Record<string, unknown>;
-  maxScore: number;
+  full_name: string | null;
+  username: string | null;
 };
 
+type QuestionBank = {
+  id: string;
+  title: string;
+  subject: string | null;
+  ownerTeacherId: string;
+  ownerTeacherName: string;
+  questionCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function teacherLabel(teacher: TeacherOption) {
+  return teacher.full_name ?? teacher.username ?? "Guru";
+}
+
 export default function QuestionBankPage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionBanks, setQuestionBanks] = useState<QuestionBank[]>([]);
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  const [id, setId] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [questionType, setQuestionType] = useState<QuestionType>("multiple-choice");
-  const [maxScore, setMaxScore] = useState("10");
+  const [ownerTeacherId, setOwnerTeacherId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [optionsText, setOptionsText] = useState("");
-  const [correctAnswer, setCorrectAnswer] = useState("");
-  const [correctAnswersText, setCorrectAnswersText] = useState("");
-  const [essayKeywordsText, setEssayKeywordsText] = useState("");
-  const [matchingPairsText, setMatchingPairsText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubject, setEditSubject] = useState("");
+  const [editOwnerTeacherId, setEditOwnerTeacherId] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  async function loadQuestions() {
+  const teacherMap = useMemo(
+    () => new Map(teachers.map((teacher) => [teacher.id, teacherLabel(teacher)])),
+    [teachers]
+  );
+
+  async function loadQuestionBanks(options?: { preserveMessage?: boolean }) {
     setIsLoading(true);
-    setMessage("");
+    if (!options?.preserveMessage) {
+      setMessage("");
+    }
 
     try {
-      const response = await fetch("/api/questions", { cache: "no-store" });
-      const result = (await response.json()) as {
-        data?: Question[];
-        error?: string;
-      };
+      const response = await fetch("/api/admin/question-banks", { cache: "no-store" });
+      const result = (await response.json()) as { data?: QuestionBank[]; error?: string };
 
       if (!response.ok) {
-        setMessage(result.error ?? "Gagal memuat soal");
+        setMessage(result.error ?? "Gagal memuat bank soal");
         return;
       }
 
-      setQuestions(result.data ?? []);
+      setQuestionBanks(result.data ?? []);
     } catch {
-      setMessage("Terjadi kesalahan saat memuat soal");
+      setMessage("Terjadi kesalahan saat memuat bank soal");
     } finally {
       setIsLoading(false);
     }
   }
 
-  useEffect(() => {
-    void loadQuestions();
-  }, []);
-
-  function normalizeLines(text: string) {
-    return text
-      .split("\n")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  }
-
-  function buildQuestionPayload() {
-    const score = Number(maxScore);
-    if (!Number.isFinite(score) || score <= 0) {
-      return { ok: false as const, error: "Max score harus lebih dari 0" };
-    }
-
-    if (questionType === "multiple-choice") {
-      const options = [...new Set(normalizeLines(optionsText))];
-      const normalizedCorrectAnswer = correctAnswer.trim();
-
-      if (options.length < 2) {
-        return {
-          ok: false as const,
-          error: "Pilihan ganda minimal memiliki 2 opsi",
-        };
-      }
-
-      if (!options.includes(normalizedCorrectAnswer)) {
-        return {
-          ok: false as const,
-          error: "Jawaban benar harus ada di daftar opsi",
-        };
-      }
-
-      return {
-        ok: true as const,
-        payload: {
-          id,
-          subject,
-          prompt,
-          questionType,
-          maxScore: score,
-          options,
-          correctAnswer: normalizedCorrectAnswer,
-        },
-      };
-    }
-
-    if (questionType === "multiple-choice-complex") {
-      const options = [...new Set(normalizeLines(optionsText))];
-      const correctAnswers = [...new Set(normalizeLines(correctAnswersText))];
-
-      if (options.length < 2) {
-        return {
-          ok: false as const,
-          error: "Pilihan ganda kompleks minimal memiliki 2 opsi",
-        };
-      }
-
-      if (correctAnswers.length < 2) {
-        return {
-          ok: false as const,
-          error: "Jawaban benar minimal 2 untuk pilihan ganda kompleks",
-        };
-      }
-
-      if (correctAnswers.some((answer) => !options.includes(answer))) {
-        return {
-          ok: false as const,
-          error: "Semua jawaban benar harus ada di daftar opsi",
-        };
-      }
-
-      return {
-        ok: true as const,
-        payload: {
-          id,
-          subject,
-          prompt,
-          questionType,
-          maxScore: score,
-          options,
-          answerKey: { correctAnswers },
-        },
-      };
-    }
-
-    if (questionType === "essay") {
-      const keywords = [...new Set(normalizeLines(essayKeywordsText))];
-      const modelAnswer = correctAnswer.trim();
-
-      if (!modelAnswer) {
-        return { ok: false as const, error: "Model jawaban essay wajib diisi" };
-      }
-
-      return {
-        ok: true as const,
-        payload: {
-          id,
-          subject,
-          prompt,
-          questionType,
-          maxScore: score,
-          correctAnswer: modelAnswer,
-          answerKey: {
-            modelAnswer,
-            keywords,
-            minKeywordMatch: 1,
-            allowManualReview: true,
-          },
-        },
-      };
-    }
-
-    if (questionType === "true-false") {
-      const normalized = correctAnswer.trim().toLowerCase();
-      if (!["benar", "salah", "true", "false"].includes(normalized)) {
-        return {
-          ok: false as const,
-          error: "Untuk benar/salah, jawaban harus 'Benar' atau 'Salah'",
-        };
-      }
-
-      return {
-        ok: true as const,
-        payload: {
-          id,
-          subject,
-          prompt,
-          questionType,
-          maxScore: score,
-          correctAnswer: normalized,
-        },
-      };
-    }
-
-    const pairs = matchingPairsText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => {
-        const [left, right] = line.split("=>").map((item) => item.trim());
-        return { left, right };
-      })
-      .filter((item) => item.left && item.right);
-
-    if (pairs.length < 2) {
-      return {
-        ok: false as const,
-        error: "Soal menjodohkan minimal memiliki 2 pasangan (format: kiri => kanan)",
-      };
-    }
-
-    return {
-      ok: true as const,
-      payload: {
-        id,
-        subject,
-        prompt,
-        questionType,
-        maxScore: score,
-        answerKey: { pairs },
-      },
-    };
-  }
-
-  async function handleCreateQuestion(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("");
-    setIsSubmitting(true);
-
+  async function loadTeachers() {
     try {
-      const build = buildQuestionPayload();
-      if (!build.ok) {
-        setMessage(build.error);
+      const response = await fetch("/api/admin/users?role=guru", { cache: "no-store" });
+      const result = (await response.json()) as { data?: TeacherOption[]; error?: string };
+
+      if (!response.ok) {
+        setMessage(result.error ?? "Gagal memuat daftar guru");
         return;
       }
 
-      const response = await fetch("/api/questions", {
+      const teacherData = result.data ?? [];
+      setTeachers(teacherData);
+
+      if (teacherData.length > 0) {
+        setOwnerTeacherId((current) => current || teacherData[0].id);
+      }
+    } catch {
+      setMessage("Terjadi kesalahan saat memuat daftar guru");
+    }
+  }
+
+  useEffect(() => {
+    void loadQuestionBanks();
+    void loadTeachers();
+  }, []);
+
+  function resetCreateForm() {
+    setTitle("");
+    setSubject("");
+    setOwnerTeacherId(teachers[0]?.id ?? "");
+  }
+
+  function handleStartEdit(bank: QuestionBank) {
+    setEditingBankId(bank.id);
+    setEditTitle(bank.title);
+    setEditSubject(bank.subject ?? "");
+    setEditOwnerTeacherId(bank.ownerTeacherId);
+    setIsEditOpen(true);
+  }
+
+  async function handleCreateQuestionBank(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setIsSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/question-banks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(build.payload),
+        body: JSON.stringify({
+          title,
+          subject,
+          ownerTeacherId,
+        }),
       });
 
-      const result = (await response.json()) as {
-        data?: Question;
-        error?: string;
-      };
-
+      const result = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setMessage(result.error ?? "Gagal menambah soal");
+        setMessage(result.error ?? "Gagal membuat bank soal");
         return;
       }
 
-      setId("");
-      setSubject("");
-      setPrompt("");
-      setQuestionType("multiple-choice");
-      setMaxScore("10");
-      setOptionsText("");
-      setCorrectAnswer("");
-      setCorrectAnswersText("");
-      setEssayKeywordsText("");
-      setMatchingPairsText("");
-      setMessage("Soal berhasil ditambahkan");
-      await loadQuestions();
+      setMessage("Bank soal berhasil dibuat");
+      setIsCreateOpen(false);
+      resetCreateForm();
+      await loadQuestionBanks({ preserveMessage: true });
     } catch {
-      setMessage("Terjadi kesalahan saat menambah soal");
+      setMessage("Terjadi kesalahan saat membuat bank soal");
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   }
 
-  async function handleDeleteQuestion(questionId: string) {
-    const confirmed = window.confirm(`Hapus soal ${questionId}?`);
+  async function handleUpdateQuestionBank(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingBankId) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/question-banks/${editingBankId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          subject: editSubject,
+          ownerTeacherId: editOwnerTeacherId,
+        }),
+      });
+
+      const result = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) {
+        setMessage(result.error ?? "Gagal memperbarui bank soal");
+        return;
+      }
+
+      setMessage(result.message ?? "Bank soal berhasil diperbarui");
+      setIsEditOpen(false);
+      setEditingBankId(null);
+      await loadQuestionBanks({ preserveMessage: true });
+    } catch {
+      setMessage("Terjadi kesalahan saat memperbarui bank soal");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
+  async function handleDeleteQuestionBank(bank: QuestionBank) {
+    const confirmed = window.confirm(`Hapus bank soal ${bank.title}?`);
     if (!confirmed) {
       return;
     }
@@ -281,187 +196,211 @@ export default function QuestionBankPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/questions/${questionId}`, {
+      const response = await fetch(`/api/admin/question-banks/${bank.id}`, {
         method: "DELETE",
       });
 
-      const result = (await response.json()) as { message?: string; error?: string };
-
+      const result = (await response.json()) as { error?: string; message?: string };
       if (!response.ok) {
-        setMessage(result.error ?? "Gagal menghapus soal");
+        setMessage(result.error ?? "Gagal menghapus bank soal");
         return;
       }
 
-      setMessage(result.message ?? "Soal berhasil dihapus");
-      await loadQuestions();
+      setMessage(result.message ?? "Bank soal berhasil dihapus");
+      await loadQuestionBanks({ preserveMessage: true });
     } catch {
-      setMessage("Terjadi kesalahan saat menghapus soal");
+      setMessage("Terjadi kesalahan saat menghapus bank soal");
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Bank Soal</h1>
-        <p className="text-sm opacity-80">
-          Data soal diambil dari Supabase melalui endpoint API.
-        </p>
-      </header>
-
-      <form onSubmit={handleCreateQuestion} className="space-y-3 rounded-lg border p-4">
-        <h2 className="text-lg font-medium">Tambah Soal</h2>
-        <input
-          type="text"
-          placeholder="ID soal (contoh: q-003)"
-          value={id}
-          onChange={(event) => setId(event.target.value)}
-          className="w-full rounded-md border px-3 py-2"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Mata pelajaran"
-          value={subject}
-          onChange={(event) => setSubject(event.target.value)}
-          className="w-full rounded-md border px-3 py-2"
-        />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <select
-            value={questionType}
-            onChange={(event) => setQuestionType(event.target.value as QuestionType)}
-            className="w-full rounded-md border px-3 py-2"
+    <main className="min-h-screen px-6 py-8 text-slate-800">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold">Manajemen Soal</h1>
+            <p className="text-sm text-slate-500">Kelola bank soal dan pemilik guru</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetCreateForm();
+              setIsCreateOpen(true);
+            }}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
           >
-            {QUESTION_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min={1}
-            value={maxScore}
-            onChange={(event) => setMaxScore(event.target.value)}
-            className="w-full rounded-md border px-3 py-2"
-            placeholder="Max score"
-            required
-          />
-        </div>
-        <textarea
-          placeholder="Pertanyaan"
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          className="w-full rounded-md border px-3 py-2"
-          rows={3}
-          required
-        />
+            Buat Bank Soal
+          </button>
+        </header>
 
-        {questionType === "multiple-choice" || questionType === "multiple-choice-complex" ? (
-          <textarea
-            placeholder={"Opsi jawaban, satu baris per opsi\nContoh:\n3\n4\n5\n6"}
-            value={optionsText}
-            onChange={(event) => setOptionsText(event.target.value)}
-            className="w-full rounded-md border px-3 py-2"
-            rows={4}
-            required
-          />
+        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+
+        {isLoading ? <p className="text-sm text-slate-500">Memuat bank soal...</p> : null}
+        {!isLoading && questionBanks.length === 0 ? (
+          <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+            Belum ada bank soal.
+          </p>
         ) : null}
 
-        <input
-          type="text"
-          placeholder={
-            questionType === "essay"
-              ? "Model jawaban otomatis"
-              : questionType === "true-false"
-                ? "Benar / Salah"
-                : "Jawaban benar"
-          }
-          value={correctAnswer}
-          onChange={(event) => setCorrectAnswer(event.target.value)}
-          className="w-full rounded-md border px-3 py-2"
-          required={questionType !== "matching" && questionType !== "multiple-choice-complex"}
-        />
-
-        {questionType === "multiple-choice-complex" ? (
-          <textarea
-            placeholder={"Jawaban benar, satu baris per item"}
-            value={correctAnswersText}
-            onChange={(event) => setCorrectAnswersText(event.target.value)}
-            className="w-full rounded-md border px-3 py-2"
-            rows={3}
-            required
-          />
-        ) : null}
-
-        {questionType === "essay" ? (
-          <textarea
-            placeholder={"Kata kunci auto-koreksi (opsional), satu baris per kata kunci"}
-            value={essayKeywordsText}
-            onChange={(event) => setEssayKeywordsText(event.target.value)}
-            className="w-full rounded-md border px-3 py-2"
-            rows={3}
-          />
-        ) : null}
-
-        {questionType === "matching" ? (
-          <textarea
-            placeholder={"Pasangan menjodohkan, format per baris: kiri => kanan"}
-            value={matchingPairsText}
-            onChange={(event) => setMatchingPairsText(event.target.value)}
-            className="w-full rounded-md border px-3 py-2"
-            rows={4}
-            required
-          />
-        ) : null}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md border px-4 py-2 disabled:opacity-50"
-        >
-          {isSubmitting ? "Menyimpan..." : "Simpan Soal"}
-        </button>
-      </form>
-
-      {message ? <p className="text-sm">{message}</p> : null}
-
-      <section className="rounded-lg border">
-        <ul className="divide-y">
-          {isLoading ? <li className="p-4 text-sm">Memuat data soal...</li> : null}
-          {!isLoading && questions.length === 0 ? (
-            <li className="p-4 text-sm">Belum ada soal.</li>
-          ) : null}
-          {!isLoading
-            ? questions.map((question) => (
-                <li key={question.id} className="space-y-2 p-4">
-                  <p className="text-xs opacity-70">
-                    {question.id} • {question.subject ?? "Umum"} • {question.questionType} • max {question.maxScore}
-                  </p>
-                  <p className="font-medium">{question.prompt}</p>
-                  {question.options.length > 0 ? (
-                    <ul className="list-disc space-y-1 pl-5 text-sm opacity-80">
-                      {question.options.map((option) => (
-                        <li key={option}>{option}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <pre className="overflow-x-auto rounded-md border p-2 text-xs opacity-80">
-                    {JSON.stringify(question.answerKey, null, 2)}
-                  </pre>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="rounded-md border px-3 py-1 text-sm"
-                      onClick={() => void handleDeleteQuestion(question.id)}
-                    >
-                      Hapus
-                    </button>
+        {!isLoading && questionBanks.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {questionBanks.map((bank) => (
+              <article
+                key={bank.id}
+                className="rounded-3xl border-l-4 border-l-violet-500 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xl font-semibold text-slate-800">{bank.title}</p>
+                    <p className="mt-1 text-sm text-slate-500">Guru: {bank.ownerTeacherName}</p>
+                    <p className="text-sm text-slate-500">Mapel: {bank.subject ?? "Umum"}</p>
                   </div>
-                </li>
-              ))
-            : null}
-        </ul>
-      </section>
+                  <div className="rounded-2xl bg-violet-100 p-3 text-violet-600">📝</div>
+                </div>
+
+                <div className="mt-5">
+                  <p className="text-sm text-slate-500">Soal Dibuat</p>
+                  <p className="text-5xl font-semibold text-slate-700">{bank.questionCount}</p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/question-bank/${bank.id}`}
+                    className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white"
+                  >
+                    Buat Soal
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(bank)}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteQuestionBank(bank)}
+                    className="rounded-lg bg-red-600 px-3 py-2 text-xs text-white"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        {isCreateOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Buat Bank Soal</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateQuestionBank} className="grid gap-3">
+                <input
+                  type="text"
+                  placeholder="Nama Bank Soal"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Mata Pelajaran"
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <select
+                  value={ownerTeacherId}
+                  onChange={(event) => setOwnerTeacherId(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                >
+                  {teachers.length === 0 ? <option value="">Belum ada guru</option> : null}
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacherLabel(teacher)}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="submit"
+                  disabled={isSaving || teachers.length === 0}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {isSaving ? "Menyimpan..." : "Simpan Bank Soal"}
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isEditOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Edit Bank Soal</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(false)}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateQuestionBank} className="grid gap-3">
+                <input
+                  type="text"
+                  placeholder="Nama Bank Soal"
+                  value={editTitle}
+                  onChange={(event) => setEditTitle(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Mata Pelajaran"
+                  value={editSubject}
+                  onChange={(event) => setEditSubject(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <select
+                  value={editOwnerTeacherId}
+                  onChange={(event) => setEditOwnerTeacherId(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                >
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacherMap.get(teacher.id) ?? "Guru"}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </main>
   );
 }

@@ -65,11 +65,29 @@ create table if not exists public.subjects (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.question_banks (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  subject text,
+  owner_teacher_id uuid not null references public.profiles(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists question_banks_owner_teacher_idx
+  on public.question_banks (owner_teacher_id);
+
+create index if not exists question_banks_created_at_idx
+  on public.question_banks (created_at desc);
+
 create unique index if not exists subjects_name_lower_key
   on public.subjects (lower(name));
 
 alter table public.questions
   add column if not exists question_type text not null default 'multiple-choice';
+
+alter table public.questions
+  add column if not exists bank_id uuid references public.question_banks(id) on delete set null;
 
 alter table public.questions
   add column if not exists answer_key jsonb not null default '{}'::jsonb;
@@ -154,6 +172,7 @@ end $$;
 alter table public.profiles enable row level security;
 alter table public.questions enable row level security;
 alter table public.subjects enable row level security;
+alter table public.question_banks enable row level security;
 alter table public.exam_sessions enable row level security;
 alter table public.exam_submissions enable row level security;
 
@@ -170,6 +189,12 @@ using (true);
 
 create policy "authenticated users can read subjects"
 on public.subjects
+for select
+to authenticated
+using (true);
+
+create policy "authenticated users can read question banks"
+on public.question_banks
 for select
 to authenticated
 using (true);

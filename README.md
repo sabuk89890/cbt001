@@ -55,6 +55,11 @@ Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles
 ## Endpoint API
 
 - `GET /api/admin/dashboard-summary`
+- `GET /api/admin/question-banks`
+- `POST /api/admin/question-banks`
+- `GET /api/admin/question-banks/:id`
+- `PUT /api/admin/question-banks/:id`
+- `DELETE /api/admin/question-banks/:id`
 - `GET /api/admin/users?role=guru|student`
 - `POST /api/admin/users`
 - `PUT /api/admin/users/:id`
