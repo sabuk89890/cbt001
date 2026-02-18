@@ -135,6 +135,8 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                   onChange={(event) => {
                     const current = normalizeStringList(value);
                     const next = event.target.checked
+
+                  type MatchingQuestionUIProps = { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean };
                       ? [...new Set([...current, option])]
                       : current.filter((item) => item !== option);
                     onChange?.(next);
