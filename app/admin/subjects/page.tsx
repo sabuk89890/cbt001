@@ -78,12 +78,7 @@ export default function AdminSubjectsPage() {
    */
 
 
-  /**
-   * @param {import('react').FormEvent<HTMLFormElement>} event
-   */
-  async function handleUpdateSubject(event) {
-    event.preventDefault();
-
+  async function handleUpdateSubject() {
     if (!editSubjectId) {
       return;
     }
@@ -240,7 +235,7 @@ export default function AdminSubjectsPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateSubject} className="grid gap-3">
+              <form onSubmit={(event) => { event.preventDefault(); void handleUpdateSubject(); }} className="grid gap-3">
                 <input
                   type="text"
                   placeholder="Kode"
