@@ -284,10 +284,21 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     // default to essay
     setCreateMode("essay");
     setAnswerKeySlash(typeof item.correctAnswer === "string" ? item.correctAnswer : "");
-    // bring form into view when editing
+    // bring form into view when editing (defer to let React render the form)
     try {
-      const el = document.getElementById("question-form");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        const el = document.getElementById("question-form");
+        if (el) {
+          try {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          } catch (_) {
+            el.scrollIntoView();
+          }
+          // focus first input inside form
+          const first = el.querySelector("input, textarea, select") as HTMLElement | null;
+          if (first) first.focus();
+        }
+      }, 60);
     } catch (e) {
       /* ignore in SSR */
     }
