@@ -77,12 +77,6 @@ export default function AdminSubjectsPage() {
    * @param {{ id: string; name?: string }} subject
    */
 
-  function handleStartEdit(subject) {
-    setEditSubjectId(subject.id);
-    setEditCode(subject.code);
-    setEditName(subject.name);
-    setIsEditModalOpen(true);
-  }
 
   /**
    * @param {import('react').FormEvent<HTMLFormElement>} event
@@ -194,7 +188,7 @@ export default function AdminSubjectsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(subject)}
+                            onClick={() => { setEditSubjectId(subject.id); setEditCode(subject.code); setEditName(subject.name); setIsEditModalOpen(true); }}
                             className="rounded border border-slate-300 px-3 py-1 text-xs"
                           >
                             Edit
