@@ -25,7 +25,7 @@ export async function POST(request: Request, context: RouteContext) {
     // load session
     const { data: session, error: sessErr } = await supabase
       .from("exam_sessions")
-      .select("id, bank_id, settings")
+      .select("id, bank_id, settings, starts_at, ends_at, duration_minutes")
       .eq("id", sessionId)
       .single();
 
@@ -34,6 +34,17 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const numQuestions = (session.settings && session.settings.numQuestions) || 0;
+
+    // enforce start/end times
+    const now = new Date();
+    if (session.starts_at) {
+      const starts = new Date(session.starts_at);
+      if (now < starts) return NextResponse.json({ error: 'Belum waktunya ujian' }, { status: 400 });
+    }
+    if (session.ends_at) {
+      const ends = new Date(session.ends_at);
+      if (now > ends) return NextResponse.json({ error: 'Waktu ujian telah berakhir' }, { status: 400 });
+    }
 
     // fetch candidate questions for bank
     const { data: questions } = await supabase

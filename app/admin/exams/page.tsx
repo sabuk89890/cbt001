@@ -17,6 +17,11 @@ export default function AdminExamsPage() {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(60);
   const [numQuestions, setNumQuestions] = useState(10);
+  const [banks, setBanks] = useState<any[]>([]);
+  const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  const [bankTeacherName, setBankTeacherName] = useState<string | null>(null);
+  const [startsAt, setStartsAt] = useState<string | null>(null);
+  const [endsAt, setEndsAt] = useState<string | null>(null);
   const [shuffleQuestions, setShuffleQuestions] = useState(true);
   const [shuffleAnswers, setShuffleAnswers] = useState(true);
   const [showScoreAfter, setShowScoreAfter] = useState(true);
@@ -30,7 +35,19 @@ export default function AdminExamsPage() {
 
   useEffect(() => {
     void fetchSessions();
+    void fetchBanks();
   }, []);
+
+  async function fetchBanks() {
+    try {
+      const res = await fetch('/api/admin/question-banks');
+      const j = await res.json();
+      if (!res.ok) return;
+      setBanks(j.data ?? []);
+    } catch (e) {
+      // ignore
+    }
+  }
 
   async function fetchSessions() {
     const res = await fetch('/api/exams');
@@ -43,8 +60,9 @@ export default function AdminExamsPage() {
     const payload = {
       id,
       title,
-      bankId: null,
-      startsAt: null,
+      bankId: selectedBank,
+      startsAt: startsAt ?? null,
+      endsAt: endsAt ?? null,
       durationMinutes: Number(duration),
       settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter }
     };
@@ -57,6 +75,10 @@ export default function AdminExamsPage() {
     }
     setMessage('Sesi dibuat');
     setTitle('');
+    setSelectedBank(null);
+    setBankTeacherName(null);
+    setStartsAt(null);
+    setEndsAt(null);
     await fetchSessions();
   }
 
@@ -188,11 +210,33 @@ export default function AdminExamsPage() {
             <h2 className="font-medium">Buat Jadwal</h2>
             <div className="grid gap-2 mt-2">
               <input className="rounded border px-2 py-1" placeholder="Judul sesi" value={title} onChange={(e)=>setTitle(e.target.value)} />
+              <div className="flex gap-2 items-center">
+                <select className="rounded border px-2 py-1" value={selectedBank ?? ''} onChange={(e)=>{
+                  const v = e.target.value || null; setSelectedBank(v);
+                  const b = banks.find(x=>x.id === v);
+                  setBankTeacherName(b?.ownerTeacherName ?? null);
+                  if (b && b.questionCount !== undefined) setNumQuestions(b.questionCount);
+                }}>
+                  <option value="">Pilih Bank Soal</option>
+                  {banks.map((b) => <option key={b.id} value={b.id}>{b.title} ({b.questionCount} soal)</option>)}
+                </select>
+                <div className="text-sm text-slate-600">Guru: {bankTeacherName ?? '-'}</div>
+              </div>
               <div className="flex gap-2">
                 <input type="number" className="rounded border px-2 py-1" value={duration} onChange={(e)=>setDuration(Number(e.target.value))} />
                 <input type="number" className="rounded border px-2 py-1" value={numQuestions} onChange={(e)=>setNumQuestions(Number(e.target.value))} />
                 <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
+              </div>
+              <div className="flex gap-2">
+                <label className="flex flex-col text-sm">
+                  Mulai
+                  <input type="datetime-local" className="rounded border px-2 py-1" value={startsAt ?? ''} onChange={(e)=>setStartsAt(e.target.value)} />
+                </label>
+                <label className="flex flex-col text-sm">
+                  Selesai
+                  <input type="datetime-local" className="rounded border px-2 py-1" value={endsAt ?? ''} onChange={(e)=>setEndsAt(e.target.value)} />
+                </label>
               </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
               <div className="flex gap-2">

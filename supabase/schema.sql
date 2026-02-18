@@ -128,6 +128,9 @@ alter table public.exam_sessions
   add column if not exists duration_minutes int;
 
 alter table public.exam_sessions
+  add column if not exists ends_at timestamptz;
+
+alter table public.exam_sessions
   add column if not exists settings jsonb not null default '{}'::jsonb;
 
 alter table public.exam_sessions
