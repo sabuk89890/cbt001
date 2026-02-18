@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type UserRole = "guru" | "student";
-type UserMenu = "guru" | "student" | "import";
 
 type UserRow = {
   id: string;
@@ -51,7 +50,6 @@ function parseCsv(text: string) {
 }
 
 export default function AdminUsersPage() {
-  const [activeMenu, setActiveMenu] = useState<UserMenu>("guru");
   const [activeRole, setActiveRole] = useState<UserRole>("guru");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +67,7 @@ export default function AdminUsersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteClassName, setDeleteClassName] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadUsers(role: UserRole) {
     setIsLoading(true);
@@ -332,47 +331,23 @@ export default function AdminUsersPage() {
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => {
-                setActiveMenu("guru");
-                setActiveRole("guru");
-              }}
+              onClick={() => setActiveRole("guru")}
               className={`rounded-lg px-4 py-2 text-sm ${
-                activeMenu === "guru" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                activeRole === "guru" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
               }`}
             >
               Guru
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveMenu("student");
-                setActiveRole("student");
-              }}
+              onClick={() => setActiveRole("student")}
               className={`rounded-lg px-4 py-2 text-sm ${
-                activeMenu === "student" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                activeRole === "student" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
               }`}
             >
               Murid
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveMenu("import");
-                setActiveRole("student");
-              }}
-              className={`rounded-lg px-4 py-2 text-sm ${
-                activeMenu === "import" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              Import Murid
-            </button>
           </div>
-
-          {activeMenu === "import" ? (
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
-              Menu Import aktif. Silakan gunakan bagian "Fitur Murid: CSV & Hapus Massal" di bawah.
-            </div>
-          ) : null}
 
           <form onSubmit={handleSave} className="grid gap-3 md:grid-cols-2">
             <input
@@ -456,19 +431,29 @@ export default function AdminUsersPage() {
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <p className="text-sm text-slate-600">Entry murid melalui file CSV.</p>
-                <a
-                  href="/templates/student-import-template.csv"
-                  download
-                  className="inline-block rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                >
-                  Download Format CSV
-                </a>
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleImportCsv}
-                  className="block w-full text-sm"
-                />
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href="/templates/student-import-template.csv"
+                    download
+                    className="inline-block rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  >
+                    Download Format CSV
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => csvInputRef.current?.click()}
+                    className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700"
+                  >
+                    Upload File CSV
+                  </button>
+                  <input
+                    ref={csvInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={handleImportCsv}
+                    className="hidden"
+                  />
+                </div>
                 {csvFileName ? <p className="text-xs text-slate-500">File: {csvFileName}</p> : null}
               </div>
 
