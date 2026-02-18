@@ -55,7 +55,6 @@ export default function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [className, setClassName] = useState("");
@@ -68,7 +67,17 @@ export default function AdminUsersPage() {
   const [deleteClassName, setDeleteClassName] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
   const csvInputRef = useRef<HTMLInputElement | null>(null);
-  const formSectionRef = useRef<HTMLElement | null>(null);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [editRole, setEditRole] = useState<UserRole>("guru");
+  const [editUsername, setEditUsername] = useState("");
+  const [editFullName, setEditFullName] = useState("");
+  const [editClassName, setEditClassName] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhotoUrl, setEditPhotoUrl] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   async function loadUsers(role: UserRole) {
     setIsLoading(true);
@@ -97,7 +106,6 @@ export default function AdminUsersPage() {
   }, [activeRole]);
 
   function resetForm() {
-    setEditingId(null);
     setUsername("");
     setFullName("");
     setClassName("");
@@ -107,22 +115,20 @@ export default function AdminUsersPage() {
   }
 
   function handleEdit(user: UserRow) {
-    if (user.role === "guru" || user.role === "student") {
-      setActiveRole(user.role);
+    if (user.role !== "guru" && user.role !== "student") {
+      setMessage("Akun admin tidak bisa diedit dari menu ini");
+      return;
     }
 
-    setEditingId(user.id);
-    setUsername(user.username ?? "");
-    setFullName(user.full_name ?? "");
-    setClassName(user.class_name ?? "");
-    setPassword("");
-    setEmail("");
-    setPhotoUrl(user.photo_url ?? "");
-    setMessage(`Mode edit aktif untuk ${user.full_name ?? user.username ?? "pengguna"}`);
-
-    setTimeout(() => {
-      formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+    setEditUserId(user.id);
+    setEditRole(user.role);
+    setEditUsername(user.username ?? "");
+    setEditFullName(user.full_name ?? "");
+    setEditClassName(user.class_name ?? "");
+    setEditPassword("");
+    setEditEmail("");
+    setEditPhotoUrl(user.photo_url ?? "");
+    setIsEditModalOpen(true);
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -141,16 +147,13 @@ export default function AdminUsersPage() {
         photoUrl: photoUrl || null,
       };
 
-      const response = await fetch(
-        editingId ? `/api/admin/users/${editingId}` : "/api/admin/users",
-        {
-          method: editingId ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       const result = (await response.json()) as { error?: string; message?: string };
       if (!response.ok) {
@@ -158,7 +161,7 @@ export default function AdminUsersPage() {
         return;
       }
 
-      setMessage(editingId ? "Data berhasil diperbarui" : "Data berhasil ditambahkan");
+      setMessage("Data berhasil ditambahkan");
       resetForm();
       await loadUsers(activeRole);
     } catch {
@@ -204,6 +207,65 @@ export default function AdminUsersPage() {
       setPhotoUrl(typeof reader.result === "string" ? reader.result : "");
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleEditPhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditPhotoUrl(typeof reader.result === "string" ? reader.result : "");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleUpdateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editUserId) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage("");
+
+    try {
+      const payload: SavePayload = {
+        role: editRole,
+        username: editUsername,
+        fullName: editFullName,
+        className: editRole === "student" ? editClassName : null,
+        password: editPassword || undefined,
+        email: editEmail || undefined,
+        photoUrl: editPhotoUrl || null,
+      };
+
+      const response = await fetch(`/api/admin/users/${editUserId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) {
+        setMessage(result.error ?? "Gagal memperbarui data pengguna");
+        return;
+      }
+
+      setMessage(result.message ?? "Data berhasil diperbarui");
+      setIsEditModalOpen(false);
+      setEditUserId(null);
+      await loadUsers(activeRole);
+    } catch {
+      setMessage("Terjadi kesalahan saat memperbarui data pengguna");
+    } finally {
+      setIsUpdating(false);
+    }
   }
 
   function toggleSelection(id: string) {
@@ -337,7 +399,7 @@ export default function AdminUsersPage() {
           </Link>
         </header>
 
-        <section ref={formSectionRef} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -392,7 +454,7 @@ export default function AdminUsersPage() {
             )}
             <input
               type="password"
-              placeholder={editingId ? "Password baru (opsional)" : "Password (default 10105158)"}
+              placeholder="Password (default 10105158)"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="rounded-lg border border-slate-300 px-3 py-2"
@@ -415,17 +477,8 @@ export default function AdminUsersPage() {
                 disabled={isSaving}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
-                {isSaving ? "Menyimpan..." : editingId ? "Update" : `Tambah ${activeRole === "guru" ? "Guru" : "Murid"}`}
+                {isSaving ? "Menyimpan..." : `Tambah ${activeRole === "guru" ? "Guru" : "Murid"}`}
               </button>
-              {editingId ? (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-700"
-                >
-                  Batal Edit
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={resetForm}
@@ -581,6 +634,105 @@ export default function AdminUsersPage() {
             </div>
           )}
         </section>
+
+        {isEditModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Edit Pengguna</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateUser} className="grid gap-3 md:grid-cols-2">
+                <select
+                  value={editRole}
+                  onChange={(event) => setEditRole(event.target.value as UserRole)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                >
+                  <option value="guru">Guru</option>
+                  <option value="student">Murid</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={editUsername}
+                  onChange={(event) => setEditUsername(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Nama Lengkap"
+                  value={editFullName}
+                  onChange={(event) => setEditFullName(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+                {editRole === "student" ? (
+                  <input
+                    type="text"
+                    placeholder="Kelas"
+                    value={editClassName}
+                    onChange={(event) => setEditClassName(event.target.value)}
+                    className="rounded-lg border border-slate-300 px-3 py-2"
+                    required
+                  />
+                ) : (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    Guru tidak memerlukan kelas
+                  </div>
+                )}
+                <input
+                  type="password"
+                  placeholder="Password baru (opsional)"
+                  value={editPassword}
+                  onChange={(event) => setEditPassword(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <input
+                  type="email"
+                  placeholder="Email auth opsional"
+                  value={editEmail}
+                  onChange={(event) => setEditEmail(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600">
+                  Upload Foto
+                  <input type="file" accept="image/*" onChange={handleEditPhotoChange} className="text-xs" />
+                </label>
+                <div className="md:col-span-2 flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+
+              {editPhotoUrl ? (
+                <div className="mt-3">
+                  <p className="mb-1 text-sm text-slate-500">Preview foto:</p>
+                  <img src={editPhotoUrl} alt="Preview foto edit" className="h-14 w-14 rounded-full object-cover" />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
     </main>
   );
