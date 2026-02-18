@@ -176,7 +176,7 @@ export default function AdminExamsPage() {
               {sessions.map((s) => (
                 <li key={s.id} className="flex items-center justify-between">
                   <button className="text-left" onClick={()=>selectSession(s.id)}>{s.title ?? s.id}</button>
-                  <span className="text-xs text-slate-500">{s.duration_minutes ?? '-' }m</span>
+                  <span className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</span>
                 </li>
               ))}
             </ul>
