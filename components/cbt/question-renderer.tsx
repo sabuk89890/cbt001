@@ -69,7 +69,7 @@ function normalizeTrueFalseStatements(input: unknown): TrueFalseStatement[] {
     .filter((item): item is TrueFalseStatement => item !== null);
 }
 
-export function QuestionRenderer({ index, question, value, onChange, readOnly = false }: Props) {
+export function QuestionRenderer({ index, question, value, onChange, readOnly = false }: QuestionRendererProps) {
   const inputName = `q-${question.id}`;
   const imageUrl =
     typeof (question.answerKey as { imageUrl?: unknown })?.imageUrl === "string"
