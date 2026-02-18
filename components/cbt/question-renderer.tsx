@@ -5,7 +5,7 @@ import { getRandomColor } from "../../lib/utils/color";
 import { useRef, useState } from "react";
 
 
-function normalizePairs(input: unknown): Pair[] {
+function normalizePairs(input) {
   if (!Array.isArray(input)) {
     return [];
   }
@@ -25,18 +25,18 @@ function normalizePairs(input: unknown): Pair[] {
 
       return { left, right };
     })
-    .filter((item): item is Pair => item !== null);
+    .filter((item) => item !== null);
 }
 
-function normalizeStringList(input: unknown): string[] {
+function normalizeStringList(input) {
   if (!Array.isArray(input)) {
     return [];
   }
 
-  return input.filter((item): item is string => typeof item === "string");
+  return input.filter((item) => typeof item === "string");
 }
 
-function normalizeTrueFalseStatements(input: unknown): TrueFalseStatement[] {
+function normalizeTrueFalseStatements(input) {
   if (!Array.isArray(input)) {
     return [];
   }
@@ -66,14 +66,14 @@ function normalizeTrueFalseStatements(input: unknown): TrueFalseStatement[] {
 
       return { text, isTrue };
     })
-    .filter((item): item is TrueFalseStatement => item !== null);
+    .filter((item) => item !== null);
 }
 
-export function QuestionRenderer({ index, question, value, onChange, readOnly = false }: QuestionRendererProps) {
+export function QuestionRenderer({ index, question, value, onChange, readOnly = false }) {
   const inputName = `q-${question.id}`;
   const imageUrl =
-    typeof (question.answerKey as { imageUrl?: unknown })?.imageUrl === "string"
-      ? String((question.answerKey as { imageUrl: string }).imageUrl)
+    typeof question.answerKey?.imageUrl === "string"
+      ? String(question.answerKey.imageUrl)
       : "";
 
   return (
@@ -231,12 +231,12 @@ const MatchingQuestionUI = ({ question, value, onChange, readOnly }) => {
     ? normalizeStringList(question.answerKey.options)
     : normalizePairs(question.answerKey?.pairs ?? []).map((p) => p.right));
   const selectedPairs = normalizePairs(value);
-  const [pendingLeft, setPendingLeft] = useState<string | null>(null);
-  const leftRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const rightRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [pendingLeft, setPendingLeft] = useState(null);
+  const leftRefs = useRef([]);
+  const rightRefs = useRef([]);
 
   // Build color map for each pair
-  const colorMap: Record<string, string> = {};
+  const colorMap = {};
   selectedPairs.forEach((pair, idx) => {
     colorMap[pair.left + "-" + pair.right] = getRandomColor(pair.left + "-" + pair.right);
   });
