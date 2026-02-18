@@ -205,8 +205,8 @@ export function normalizeQuestionPayload(body: QuestionPayload):
 
     const correctAnswers = unique(candidateCorrectAnswers);
 
-    if (options.length < 2) {
-      return { ok: false, error: "Pilihan ganda kompleks minimal memiliki 2 opsi" };
+    if (options.length !== 4) {
+      return { ok: false, error: "Pilihan ganda kompleks harus memiliki tepat 4 opsi" };
     }
 
     if (correctAnswers.length < 2) {
