@@ -47,3 +47,20 @@ body {
   .hover\:bg-blue-600:hover { background-color: #3a0b0b !important; }
   .hover\:text-blue-600:hover { color: #f3e6e6 !important; }
 }
+
+/* Additional blue utility overrides found in codebase */
+@media (prefers-color-scheme: dark) {
+  .bg-blue-50 { background-color: #2a0a0a !important; }
+  .bg-blue-100 { background-color: #301010 !important; }
+  .bg-blue-700 { background-color: #2f0707 !important; }
+
+  .text-blue-700 { color: #e9dcdc !important; }
+  .text-blue-100 { color: rgba(243,230,230,0.9) !important; }
+
+  .hover\:bg-blue-700:hover { background-color: #2f0707 !important; }
+  .hover\:bg-blue-500:hover { background-color: #4a0d0d !important; }
+
+  .border-blue-300 { border-color: #5a1212 !important; }
+  .bg-blue-50 { background-color: #1f0a0a !important; }
+  .text-blue-600 { color: #f3e6e6 !important; }
+}
