@@ -68,6 +68,7 @@ export default function AdminUsersPage() {
   const [deleteClassName, setDeleteClassName] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
   const csvInputRef = useRef<HTMLInputElement | null>(null);
+  const formSectionRef = useRef<HTMLElement | null>(null);
 
   async function loadUsers(role: UserRole) {
     setIsLoading(true);
@@ -106,6 +107,10 @@ export default function AdminUsersPage() {
   }
 
   function handleEdit(user: UserRow) {
+    if (user.role === "guru" || user.role === "student") {
+      setActiveRole(user.role);
+    }
+
     setEditingId(user.id);
     setUsername(user.username ?? "");
     setFullName(user.full_name ?? "");
@@ -113,6 +118,11 @@ export default function AdminUsersPage() {
     setPassword("");
     setEmail("");
     setPhotoUrl(user.photo_url ?? "");
+    setMessage(`Mode edit aktif untuk ${user.full_name ?? user.username ?? "pengguna"}`);
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -327,7 +337,7 @@ export default function AdminUsersPage() {
           </Link>
         </header>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section ref={formSectionRef} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -407,6 +417,15 @@ export default function AdminUsersPage() {
               >
                 {isSaving ? "Menyimpan..." : editingId ? "Update" : `Tambah ${activeRole === "guru" ? "Guru" : "Murid"}`}
               </button>
+              {editingId ? (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-700"
+                >
+                  Batal Edit
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={resetForm}
