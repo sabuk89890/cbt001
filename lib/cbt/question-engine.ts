@@ -15,6 +15,7 @@ type Pair = {
 
 export type QuestionPayload = {
   id?: string;
+  bankId?: string;
   subject?: string;
   prompt?: string;
   questionType?: string;
@@ -26,6 +27,7 @@ export type QuestionPayload = {
 
 export type NormalizedQuestion = {
   id: string;
+  bankId: string | null;
   subject: string | null;
   prompt: string;
   questionType: QuestionType;
@@ -37,6 +39,7 @@ export type NormalizedQuestion = {
 
 export type QuestionRow = {
   id: string;
+  bank_id?: string | null;
   subject: string | null;
   prompt: string;
   question_type: QuestionType;
@@ -138,6 +141,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
   | { ok: true; data: NormalizedQuestion }
   | { ok: false; error: string } {
   const id = typeof body.id === "string" ? body.id.trim() : "";
+  const bankId = typeof body.bankId === "string" ? body.bankId.trim() : "";
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const subject = typeof body.subject === "string" ? body.subject.trim() : "";
 
@@ -172,6 +176,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       ok: true,
       data: {
         id,
+        bankId: bankId || null,
         subject: subject || null,
         prompt,
         questionType,
@@ -216,6 +221,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       ok: true,
       data: {
         id,
+        bankId: bankId || null,
         subject: subject || null,
         prompt,
         questionType,
@@ -242,6 +248,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       ok: true,
       data: {
         id,
+        bankId: bankId || null,
         subject: subject || null,
         prompt,
         questionType,
@@ -272,6 +279,18 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       1
     );
 
+    const acceptedAnswers = unique(
+      modelAnswer
+        .split("/")
+        .map((item) => item.trim().toLowerCase())
+        .filter((item) => item.length > 0)
+    );
+
+    const imageUrl =
+      typeof (body.answerKey as { imageUrl?: unknown })?.imageUrl === "string"
+        ? String((body.answerKey as { imageUrl: string }).imageUrl).trim()
+        : "";
+
     if (!modelAnswer) {
       return { ok: false, error: "Soal essay wajib memiliki model jawaban" };
     }
@@ -280,6 +299,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       ok: true,
       data: {
         id,
+        bankId: bankId || null,
         subject: subject || null,
         prompt,
         questionType,
@@ -287,9 +307,11 @@ export function normalizeQuestionPayload(body: QuestionPayload):
         options: [],
         answerKey: {
           modelAnswer,
+          acceptedAnswers,
           keywords,
           minKeywordMatch,
-          allowManualReview: true,
+          imageUrl,
+          allowManualReview: acceptedAnswers.length === 0,
         },
         legacyCorrectAnswer: modelAnswer,
       },
@@ -314,6 +336,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
       ok: true,
       data: {
         id,
+        bankId: bankId || null,
         subject: subject || null,
         prompt,
         questionType,
@@ -412,12 +435,35 @@ export function gradeQuestion(question: QuestionRow, submittedAnswer: unknown): 
 
   if (questionType === "essay") {
     const modelAnswer = asString((question.answer_key as { modelAnswer?: unknown }).modelAnswer);
+    const acceptedAnswers = unique(
+      normalizeLines((question.answer_key as { acceptedAnswers?: unknown }).acceptedAnswers)
+        .map((item) => item.toLowerCase())
+    );
     const keywords = unique(
       normalizeLines((question.answer_key as { keywords?: unknown }).keywords)
         .map((item) => item.toLowerCase())
     );
 
     const studentText = asString(submittedAnswer).toLowerCase();
+
+    if (acceptedAnswers.length > 0) {
+      const isCorrect = studentText.length > 0 && acceptedAnswers.includes(studentText);
+      const score = isCorrect ? maxScore : 0;
+
+      return {
+        questionId: question.id,
+        questionType,
+        maxScore,
+        submittedAnswer,
+        autoScore: score,
+        manualScore: null,
+        finalScore: score,
+        isAutoCorrect: true,
+        needsManualReview: false,
+        notes: "Essay auto-grade berdasarkan kunci jawaban dipisah '/'",
+      };
+    }
+
     let ratio = 0;
 
     if (studentText.length > 0 && keywords.length > 0) {

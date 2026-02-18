@@ -23,6 +23,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const { data, error } = await supabase
       .from("questions")
       .update({
+        bank_id: normalized.data.bankId,
         subject: normalized.data.subject,
         prompt: normalized.data.prompt,
         question_type: normalized.data.questionType,
@@ -32,7 +33,7 @@ export async function PUT(request: Request, context: RouteContext) {
         max_score: normalized.data.maxScore,
       })
       .eq("id", id)
-      .select("id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
+      .select("id, bank_id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
       .maybeSingle();
 
     if (error) {
@@ -46,6 +47,7 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json({
       data: {
         id: data.id,
+        bankId: data.bank_id ?? null,
         subject: data.subject,
         prompt: data.prompt,
         questionType: data.question_type,

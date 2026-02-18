@@ -2,6 +2,7 @@ import type { QuestionType } from "./question-engine";
 
 export type ExamQuestion = {
   id: string;
+  bankId?: string | null;
   subject: string | null;
   prompt: string;
   questionType: QuestionType;

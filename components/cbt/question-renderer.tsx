@@ -45,12 +45,23 @@ function normalizeStringList(input: unknown): string[] {
 
 export function QuestionRenderer({ index, question, value, onChange, readOnly = false }: Props) {
   const inputName = `q-${question.id}`;
+  const imageUrl =
+    typeof (question.answerKey as { imageUrl?: unknown })?.imageUrl === "string"
+      ? String((question.answerKey as { imageUrl: string }).imageUrl)
+      : "";
 
   return (
     <fieldset className="space-y-2 rounded-lg border p-4">
       <legend className="font-medium">
         {index + 1}. {question.prompt}
       </legend>
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={`Gambar soal ${question.id}`}
+          className="max-h-64 w-full rounded-md border object-contain"
+        />
+      ) : null}
       <p className="text-xs opacity-70">
         {question.questionType} • max {question.maxScore}
       </p>

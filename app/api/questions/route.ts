@@ -9,6 +9,7 @@ import {
 function mapQuestion(row: QuestionRow) {
   return {
     id: row.id,
+    bankId: row.bank_id ?? null,
     subject: row.subject,
     prompt: row.prompt,
     questionType: row.question_type,
@@ -24,7 +25,7 @@ export async function GET() {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
       .from("questions")
-      .select("id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
+      .select("id, bank_id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       .from("questions")
       .insert({
         id: normalized.data.id,
+        bank_id: normalized.data.bankId,
         subject: normalized.data.subject,
         prompt: normalized.data.prompt,
         question_type: normalized.data.questionType,
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
         answer_key: normalized.data.answerKey,
         max_score: normalized.data.maxScore,
       })
-      .select("id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
+      .select("id, bank_id, subject, prompt, question_type, options, correct_answer, answer_key, max_score")
       .single();
 
     if (error) {
