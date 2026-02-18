@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     const { data: profileByUsername, error: profileLookupError } = await adminClient
       .from("profiles")
-      .select("email")
+      .select("id, role")
       .eq("username", rawUsername)
       .maybeSingle();
 
@@ -35,10 +35,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const emailForAuth = profileByUsername?.email;
+    const profileId = profileByUsername?.id;
+
+    if (!profileId) {
+      return NextResponse.json({ error: "Username tidak ditemukan" }, { status: 401 });
+    }
+
+    const { data: authUserData, error: authUserError } = await adminClient.auth.admin.getUserById(
+      profileId
+    );
+
+    if (authUserError) {
+      return NextResponse.json(
+        { error: `Gagal mencari akun auth: ${authUserError.message}` },
+        { status: 500 }
+      );
+    }
+
+    const emailForAuth = authUserData.user?.email;
 
     if (!emailForAuth) {
-      return NextResponse.json({ error: "Username tidak ditemukan" }, { status: 401 });
+      return NextResponse.json({ error: "Akun auth untuk username tidak ditemukan" }, { status: 401 });
     }
 
     const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
@@ -53,31 +70,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: profile, error: profileError } = await adminClient
-      .from("profiles")
-      .select("role")
-      .eq("id", authData.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      return NextResponse.json(
-        { error: `Gagal validasi role: ${profileError.message}` },
-        { status: 500 }
-      );
-    }
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: "Profil user belum terdaftar di tabel profiles" },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json({
       message: "Login berhasil",
       user: {
         id: authData.user.id,
-        role: profile.role,
+        role: profileByUsername.role,
         username: rawUsername,
       },
       session: {
