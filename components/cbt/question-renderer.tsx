@@ -1,19 +1,9 @@
 "use client";
 
-import type { ExamQuestion, MatchingQuestionUIProps } from "@/lib/cbt/types";
+import type { ExamQuestion, MatchingQuestionUIProps, Pair, TrueFalseStatement, QuestionRendererProps } from "@/lib/cbt/types";
 import { getRandomColor } from "../../lib/utils/color";
 import { useRef, useState } from "react";
 
-type Pair = { left: string; right: string };
-type TrueFalseStatement = { text: string; isTrue: boolean };
-
-type Props = {
-  index: number;
-  question: ExamQuestion;
-  value: unknown;
-  onChange?: (nextValue: unknown) => void;
-  readOnly?: boolean;
-};
 
 function normalizePairs(input: unknown): Pair[] {
   if (!Array.isArray(input)) {

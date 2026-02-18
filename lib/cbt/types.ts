@@ -1,3 +1,12 @@
+export type Pair = { left: string; right: string };
+export type TrueFalseStatement = { text: string; isTrue: boolean };
+export type QuestionRendererProps = {
+  index: number;
+  question: ExamQuestion;
+  value: unknown;
+  onChange?: (nextValue: unknown) => void;
+  readOnly?: boolean;
+};
 export type MatchingQuestionUIProps = { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean };
 import type { QuestionType } from "./question-engine";
 
