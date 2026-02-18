@@ -4,15 +4,17 @@ import Image from "next/image";
 import { FormEvent, useState } from "react";
 
 type LoginScreenProps = {
-  role: "admin" | "student";
+  initialRole?: "admin" | "guru" | "student";
 };
 
-const roleLabel: Record<LoginScreenProps["role"], string> = {
+const roleLabel: Record<"admin" | "guru" | "student", string> = {
   admin: "Admin",
+  guru: "Guru",
   student: "Siswa",
 };
 
-export function LoginScreen({ role }: LoginScreenProps) {
+export function LoginScreen({ initialRole = "student" }: LoginScreenProps) {
+  const [role, setRole] = useState<"admin" | "guru" | "student">(initialRole);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -79,6 +81,16 @@ export function LoginScreen({ role }: LoginScreenProps) {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+              <select
+                value={role}
+                onChange={(event) => setRole(event.target.value as "admin" | "guru" | "student")}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 outline-none focus:border-blue-600"
+              >
+                <option value="student">Siswa</option>
+                <option value="guru">Guru</option>
+                <option value="admin">Admin</option>
+              </select>
+
               <input
                 type="text"
                 placeholder="Username"

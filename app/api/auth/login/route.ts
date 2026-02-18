@@ -4,7 +4,7 @@ import { createSupabaseAdminClient, createSupabaseAuthClient } from "@/lib/supab
 type LoginPayload = {
   username?: string;
   password?: string;
-  role?: "admin" | "student";
+  role?: "admin" | "guru" | "student";
 };
 
 export async function POST(request: Request) {
@@ -74,7 +74,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (profile.role !== body.role) {
+    const allowedRoles: Record<NonNullable<LoginPayload["role"]>, string[]> = {
+      admin: ["admin"],
+      guru: ["admin", "guru"],
+      student: ["student"],
+    };
+
+    if (!allowedRoles[body.role].includes(profile.role)) {
       return NextResponse.json(
         { error: `Role tidak sesuai. Ditemukan role '${profile.role}'` },
         { status: 403 }
