@@ -34,3 +34,43 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { id } = await context.params;
+
+    const { error } = await supabase.from('exam_sessions').delete().eq('id', id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ data: { ok: true } }, { status: 200 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  try {
+    const body = await request.json();
+    const { id } = await context.params;
+
+    const update: any = {};
+    if (body.title !== undefined) update.title = body.title;
+    if (body.bankId !== undefined) update.bank_id = body.bankId;
+    if (body.startsAt !== undefined) update.starts_at = body.startsAt ? new Date(body.startsAt) : null;
+    if (body.durationMinutes !== undefined) update.duration_minutes = body.durationMinutes === null ? null : Number(body.durationMinutes);
+    if (body.settings !== undefined) update.settings = body.settings;
+    if (body.isActive !== undefined) update.is_active = body.isActive;
+
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, duration_minutes, settings, is_active').single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

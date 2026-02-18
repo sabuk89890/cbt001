@@ -21,6 +21,8 @@ export default function AdminExamsPage() {
   const [shuffleAnswers, setShuffleAnswers] = useState(true);
   const [showScoreAfter, setShowScoreAfter] = useState(true);
   const [message, setMessage] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const subscriptionRef = useRef<any | null>(null);
@@ -55,6 +57,27 @@ export default function AdminExamsPage() {
     }
     setMessage('Sesi dibuat');
     setTitle('');
+    await fetchSessions();
+  }
+
+  async function handleDelete(sessionId: string) {
+    if (!confirm('Hapus sesi ini?')) return;
+    const res = await fetch(`/api/exams/${sessionId}`, { method: 'DELETE' });
+    const j = await res.json();
+    if (!res.ok) { alert(j.error ?? 'Gagal hapus'); return; }
+    await fetchSessions();
+  }
+
+  async function handleEdit(session: any) {
+    const newTitle = prompt('Judul sesi', session.title ?? '');
+    if (newTitle === null) return;
+    const newDuration = prompt('Durasi (menit, kosongkan untuk tanpa durasi)', session.duration_minutes ?? '');
+    const body: any = { title: newTitle };
+    if (newDuration === '') body.durationMinutes = null; else if (newDuration != null) body.durationMinutes = Number(newDuration);
+
+    const res = await fetch(`/api/exams/${session.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await res.json();
+    if (!res.ok) { alert(j.error ?? 'Gagal update'); return; }
     await fetchSessions();
   }
 
@@ -150,71 +173,58 @@ export default function AdminExamsPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-semibold mb-4">Manajemen Ujian</h1>
 
-        <section className="mb-6 rounded border p-4">
-          <h2 className="font-medium">Buat Sesi Ujian</h2>
-          <div className="grid gap-2 mt-2">
-            <input className="rounded border px-2 py-1" placeholder="Judul sesi" value={title} onChange={(e)=>setTitle(e.target.value)} />
-            <div className="flex gap-2">
-              <input type="number" className="rounded border px-2 py-1" value={duration} onChange={(e)=>setDuration(Number(e.target.value))} />
-              <input type="number" className="rounded border px-2 py-1" value={numQuestions} onChange={(e)=>setNumQuestions(Number(e.target.value))} />
-              <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
-            </div>
-            <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={createSession}>Buat Sesi</button>
-              <button className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
-            </div>
-            {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-medium">Manajemen Ujian</h2>
+            <p className="text-sm text-slate-500">Kelola jadwal ujian dan peserta</p>
           </div>
-        </section>
-
-        <section className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="col-span-1 md:col-span-1 rounded border p-3">
-            <h3 className="font-medium">Daftar Sesi</h3>
-            <ul className="mt-2 space-y-2">
-              {sessions.map((s) => (
-                <li key={s.id} className="flex items-center justify-between">
-                  <button className="text-left" onClick={()=>selectSession(s.id)}>{s.title ?? s.id}</button>
-                  <span className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</span>
-                </li>
-              ))}
-            </ul>
+          <div>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={()=>setShowCreate(v=>!v)}>Buat jadwal</button>
           </div>
+        </div>
 
-          <div className="col-span-2 rounded border p-3">
-            <h3 className="font-medium">Detail Sesi</h3>
-            {sessionDetail ? (
-              <div className="mt-2">
-                <p className="text-sm">{sessionDetail.session?.title}</p>
-                <div className="mt-3">
-                    <h4 className="font-medium">Peserta</h4>
-                    {metrics ? (
-                      <div className="text-sm text-slate-600 mt-2">In progress: {metrics.in_progress ?? 0} • Finished: {metrics.finished ?? 0} • Not started: {metrics.not_started ?? 0} • Stopped: {metrics.stopped ?? 0}</div>
-                    ) : null}
-                  <div className="mt-2 space-y-2">
-                    {(sessionDetail.participants ?? []).map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between rounded p-2 border">
-                        <div>
-                          <div className="text-sm">{p.student_id}</div>
-                          <div className="text-xs text-slate-500">{p.status} • {p.score ?? '-'}</div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="px-2 py-1 rounded border" onClick={()=>handleReset(p.id)}>Reset</button>
-                          <button className="px-2 py-1 rounded border text-red-600" onClick={()=>handleForceStop(p.id)}>Hentikan</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <button className="px-3 py-1 bg-green-600 text-white rounded" onClick={()=>simulateStart(sessionDetail.session.id)}>Simulasi Start Peserta</button>
-                  </div>
+        {showCreate ? (
+          <section className="mb-6 rounded border p-4">
+            <h2 className="font-medium">Buat Jadwal</h2>
+            <div className="grid gap-2 mt-2">
+              <input className="rounded border px-2 py-1" placeholder="Judul sesi" value={title} onChange={(e)=>setTitle(e.target.value)} />
+              <div className="flex gap-2">
+                <input type="number" className="rounded border px-2 py-1" value={duration} onChange={(e)=>setDuration(Number(e.target.value))} />
+                <input type="number" className="rounded border px-2 py-1" value={numQuestions} onChange={(e)=>setNumQuestions(Number(e.target.value))} />
+                <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
+              </div>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={createSession}>Buat Jadwal</button>
+                <button className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
+              </div>
+              {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sessions.map((s) => (
+            <div key={s.id} className="rounded-lg bg-white shadow p-4 relative">
+              <div className="absolute -left-3 top-3 h-full w-2 bg-gradient-to-b from-purple-400 to-violet-600 rounded-l"></div>
+              <div className="pl-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-lg font-semibold">{s.title ?? s.id}</h3>
+                  <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
+                </div>
+                <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
+                <div className="mt-4">Soal Dibuat</div>
+                <div className="text-3xl font-bold mt-1">—</div>
+
+                <div className="mt-4 flex gap-2">
+                  <button className="px-3 py-1 bg-blue-600 text-white rounded">Buat Soal</button>
+                  <button className="px-3 py-1 border rounded" onClick={()=>handleEdit(s)}>Edit</button>
+                  <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={()=>handleDelete(s.id)}>Hapus</button>
                 </div>
               </div>
-            ) : (
-              <p className="text-sm text-slate-500">Pilih sesi untuk lihat detail</p>
-            )}
-          </div>
+            </div>
+          ))}
         </section>
       </div>
     </main>
