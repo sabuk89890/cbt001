@@ -234,7 +234,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
 // --- MatchingQuestionUI ---
 // Fungsi harus di luar komponen dan hanya pakai const
 
-function MatchingQuestionUI({ question, value, onChange, readOnly }: { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean }) {
+const MatchingQuestionUI = ({ question, value, onChange, readOnly }: { question: ExamQuestion; value: unknown; onChange?: (v: unknown) => void; readOnly?: boolean }) => {
   const lefts = normalizePairs(question.answerKey?.pairs ?? []).map((p) => p.left);
   const rights = (question.answerKey?.options && Array.isArray(question.answerKey.options)
     ? normalizeStringList(question.answerKey.options)
