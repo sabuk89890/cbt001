@@ -43,6 +43,9 @@ export default function AdminSubjectsPage() {
     void loadSubjects();
   }, []);
 
+  /**
+   * @param {import('react').FormEvent<HTMLFormElement>} event
+   */
   async function handleCreate(event) {
     event.preventDefault();
     setIsSaving(true);
@@ -107,6 +110,9 @@ export default function AdminSubjectsPage() {
     setIsEditModalOpen(true);
   }
 
+  /**
+   * @param {import('react').FormEvent<HTMLFormElement>} event
+   */
   async function handleUpdateSubject(event) {
     event.preventDefault();
 

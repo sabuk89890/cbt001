@@ -9,6 +9,9 @@ export function LoginScreen() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * @param {import('react').FormEvent<HTMLFormElement>} event
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
