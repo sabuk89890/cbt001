@@ -1,0 +1,37 @@
+import type { QuestionType } from "./question-engine";
+
+export type ExamQuestion = {
+  id: string;
+  subject: string | null;
+  prompt: string;
+  questionType: QuestionType;
+  options: string[];
+  correctAnswer: string;
+  answerKey: Record<string, unknown>;
+  maxScore: number;
+};
+
+export type SubmissionReview = {
+  id: string;
+  sessionId: string;
+  studentId: string | null;
+  answers: Record<string, unknown>;
+  score: number;
+  autoScore: number;
+  manualAdjustment: number;
+  status: string;
+  needsManualReview: boolean;
+  reviewStatus: string;
+  gradingDetail: Array<{
+    questionId: string;
+    questionType: QuestionType;
+    maxScore: number;
+    submittedAnswer: unknown;
+    autoScore: number;
+    manualScore: number | null;
+    finalScore: number;
+    isAutoCorrect: boolean;
+    needsManualReview: boolean;
+    notes?: string;
+  }>;
+};
