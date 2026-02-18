@@ -118,6 +118,60 @@ create table if not exists public.exam_sessions (
   created_at timestamptz not null default now()
 );
 
+alter table public.exam_sessions
+  add column if not exists bank_id uuid references public.question_banks(id) on delete set null;
+
+alter table public.exam_sessions
+  add column if not exists starts_at timestamptz;
+
+alter table public.exam_sessions
+  add column if not exists duration_minutes int;
+
+alter table public.exam_sessions
+  add column if not exists settings jsonb not null default '{}'::jsonb;
+
+alter table public.exam_sessions
+  add column if not exists is_active boolean not null default false;
+
+create table if not exists public.exam_participants (
+  id uuid primary key default gen_random_uuid(),
+  session_id text not null references public.exam_sessions(id) on delete cascade,
+  student_id uuid not null references public.profiles(id) on delete cascade,
+  started_at timestamptz,
+  finished_at timestamptz,
+  status text not null default 'not_started',
+  answers jsonb not null default '{}'::jsonb,
+  score numeric,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'exam_participants_status_check'
+  ) then
+    alter table public.exam_participants
+      add constraint exam_participants_status_check
+      check (status in ('not_started','in_progress','finished','stopped'));
+  end if;
+end $$;
+
+create table if not exists public.session_questions (
+  id uuid primary key default gen_random_uuid(),
+  session_id text not null references public.exam_sessions(id) on delete cascade,
+  participant_id uuid references public.exam_participants(id) on delete cascade,
+  question_id text not null references public.questions(id) on delete restrict,
+  order_index int,
+  shuffled_options jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_session_questions_session on public.session_questions(session_id);
+create index if not exists idx_session_questions_participant on public.session_questions(participant_id);
+
 create table if not exists public.exam_submissions (
   id uuid primary key default gen_random_uuid(),
   session_id text not null references public.exam_sessions(id) on delete cascade,
