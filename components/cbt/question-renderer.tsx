@@ -347,6 +347,3 @@ const MatchingQuestionUI = ({ question, value, onChange, readOnly }) => {
     </div>
   );
 }
-    </fieldset>
-  );
-}
