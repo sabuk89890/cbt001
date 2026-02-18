@@ -17,6 +17,11 @@ export default function AdminSubjectsPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editName, setEditName] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   async function loadSubjects() {
     setIsLoading(true);
@@ -100,6 +105,49 @@ export default function AdminSubjectsPage() {
     }
   }
 
+  function handleStartEdit(subject: Subject) {
+    setEditSubjectId(subject.id);
+    setEditCode(subject.code);
+    setEditName(subject.name);
+    setIsEditModalOpen(true);
+  }
+
+  async function handleUpdateSubject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editSubjectId) {
+      return;
+    }
+
+    setIsUpdating(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/subjects/${editSubjectId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: editCode, name: editName }),
+      });
+
+      const result = (await response.json()) as { message?: string; error?: string };
+      if (!response.ok) {
+        setMessage(result.error ?? "Gagal memperbarui mata pelajaran");
+        return;
+      }
+
+      setMessage(result.message ?? "Mata pelajaran berhasil diperbarui");
+      setIsEditModalOpen(false);
+      setEditSubjectId(null);
+      await loadSubjects();
+    } catch {
+      setMessage("Terjadi kesalahan saat memperbarui mata pelajaran");
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 px-6 py-8 text-slate-800">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -168,13 +216,22 @@ export default function AdminSubjectsPage() {
                       <td className="px-2 py-2">{subject.code}</td>
                       <td className="px-2 py-2">{subject.name}</td>
                       <td className="px-2 py-2">
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(subject)}
-                          className="rounded bg-red-600 px-3 py-1 text-xs text-white"
-                        >
-                          Hapus
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(subject)}
+                            className="rounded border border-slate-300 px-3 py-1 text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(subject)}
+                            className="rounded bg-red-600 px-3 py-1 text-xs text-white"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -183,6 +240,59 @@ export default function AdminSubjectsPage() {
             </div>
           )}
         </section>
+
+        {isEditModalOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Edit Mata Pelajaran</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateSubject} className="grid gap-3">
+                <input
+                  type="text"
+                  placeholder="Kode"
+                  value={editCode}
+                  onChange={(event) => setEditCode(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Nama Mata Pelajaran"
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
       </div>
     </main>
   );
