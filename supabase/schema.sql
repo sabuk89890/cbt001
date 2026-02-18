@@ -172,6 +172,29 @@ create table if not exists public.session_questions (
 create index if not exists idx_session_questions_session on public.session_questions(session_id);
 create index if not exists idx_session_questions_participant on public.session_questions(participant_id);
 
+-- index to speed up participant queries by session and status
+create index if not exists idx_exam_participants_session_status on public.exam_participants(session_id, status);
+
+-- view: counts per session per status
+create view if not exists public.view_session_participant_counts as
+select session_id, status, count(*) as cnt
+from public.exam_participants
+group by session_id, status;
+
+-- rpc: return aggregated metrics for a session as jsonb
+create or replace function public.rpc_get_session_metrics(sid text)
+returns jsonb as $$
+  select jsonb_build_object(
+    'in_progress', coalesce(sum(case when status='in_progress' then 1 else 0 end),0),
+    'finished', coalesce(sum(case when status='finished' then 1 else 0 end),0),
+    'not_started', coalesce(sum(case when status='not_started' then 1 else 0 end),0),
+    'stopped', coalesce(sum(case when status='stopped' then 1 else 0 end),0)
+  )
+  from public.exam_participants
+  where session_id = sid;
+$$ language sql stable;
+
+
 create table if not exists public.exam_submissions (
   id uuid primary key default gen_random_uuid(),
   session_id text not null references public.exam_sessions(id) on delete cascade,
