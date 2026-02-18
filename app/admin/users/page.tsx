@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 
 type UserRole = "guru" | "student";
+type UserMenu = "guru" | "student" | "import";
 
 type UserRow = {
   id: string;
@@ -50,6 +51,7 @@ function parseCsv(text: string) {
 }
 
 export default function AdminUsersPage() {
+  const [activeMenu, setActiveMenu] = useState<UserMenu>("guru");
   const [activeRole, setActiveRole] = useState<UserRole>("guru");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -327,26 +329,50 @@ export default function AdminUsersPage() {
         </header>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setActiveRole("guru")}
+              onClick={() => {
+                setActiveMenu("guru");
+                setActiveRole("guru");
+              }}
               className={`rounded-lg px-4 py-2 text-sm ${
-                activeRole === "guru" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                activeMenu === "guru" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
               }`}
             >
               Guru
             </button>
             <button
               type="button"
-              onClick={() => setActiveRole("student")}
+              onClick={() => {
+                setActiveMenu("student");
+                setActiveRole("student");
+              }}
               className={`rounded-lg px-4 py-2 text-sm ${
-                activeRole === "student" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                activeMenu === "student" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
               }`}
             >
               Murid
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveMenu("import");
+                setActiveRole("student");
+              }}
+              className={`rounded-lg px-4 py-2 text-sm ${
+                activeMenu === "import" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              Import Murid
+            </button>
           </div>
+
+          {activeMenu === "import" ? (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+              Menu Import aktif. Silakan gunakan bagian "Fitur Murid: CSV & Hapus Massal" di bawah.
+            </div>
+          ) : null}
 
           <form onSubmit={handleSave} className="grid gap-3 md:grid-cols-2">
             <input
