@@ -26,12 +26,18 @@ type BankQuestion = {
   answerKey: Record<string, unknown>;
 };
 
-type CreateMode = "essay" | "multiple-choice-complex" | "true-false";
+type CreateMode = "essay" | "multiple-choice-complex" | "true-false" | "matching";
 
 type TrueFalseRow = {
   id: string;
   text: string;
   answer: "Benar" | "Salah";
+};
+
+type MatchingRow = {
+  id: string;
+  left: string;
+  right: string;
 };
 
 const MAX_IMAGE_SIZE = 100 * 1024;
@@ -58,6 +64,11 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
 
   const [trueFalseRows, setTrueFalseRows] = useState<TrueFalseRow[]>([
     { id: `tf-${Date.now()}-1`, text: "", answer: "Benar" },
+  ]);
+
+  const [matchingRows, setMatchingRows] = useState<MatchingRow[]>([
+    { id: `m-${Date.now()}-1`, left: "", right: "" },
+    { id: `m-${Date.now()}-2`, left: "", right: "" },
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -97,6 +108,15 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
         };
 
         if (!questionsResponse.ok) {
+              <button
+                type="button"
+                onClick={() => resetForm("matching")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "matching" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Menjodohkan
+              </button>
           setMessage(questionResult.error ?? "Gagal memuat daftar soal");
           return;
         }
@@ -114,7 +134,9 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
 
   function resetForm(mode: CreateMode) {
     setCreateMode(mode);
-    setQuestionId(`${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : "tf"}-${Date.now()}`);
+    setQuestionId(
+      `${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : mode === "true-false" ? "tf" : "match"}-${Date.now()}`
+    );
     setPrompt("");
     setAnswerKeySlash("");
     setMaxScore("10");
@@ -125,6 +147,10 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setOptionD("");
     setSelectedCorrectOptions([]);
     setTrueFalseRows([{ id: `tf-${Date.now()}-1`, text: "", answer: "Benar" }]);
+    setMatchingRows([
+      { id: `m-${Date.now()}-1`, left: "", right: "" },
+      { id: `m-${Date.now()}-2`, left: "", right: "" },
+    ]);
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -175,6 +201,18 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
           : item
       )
     );
+  }
+
+  function addMatchingRow() {
+    setMatchingRows((prev) => [...prev, { id: `m-${Date.now()}-${prev.length + 1}`, left: "", right: "" }]);
+  }
+
+  function removeMatchingRow(id: string) {
+    setMatchingRows((prev) => (prev.length <= 2 ? prev : prev.filter((r) => r.id !== id)));
+  }
+
+  function updateMatchingRow(id: string, field: "left" | "right", value: string) {
+    setMatchingRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   }
 
   async function refreshQuestions() {
@@ -246,24 +284,40 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                   imageUrl,
                 },
               }
-            : {
-                id: questionId,
-                bankId,
-                subject: bank?.subject ?? "",
-                prompt,
-                questionType: "true-false",
-                maxScore: Number(maxScore),
-                options: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => item.text.trim()),
-                answerKey: {
-                  statements: trueFalseRows
-                    .filter((item) => item.text.trim().length > 0)
-                    .map((item) => ({
-                      text: item.text.trim(),
-                      isTrue: item.answer === "Benar",
-                    })),
-                  imageUrl,
-                },
-              };
+            : createMode === "matching"
+              ? {
+                  id: questionId,
+                  bankId,
+                  subject: bank?.subject ?? "",
+                  prompt,
+                  questionType: "matching",
+                  maxScore: Number(maxScore),
+                  // answerKey.pairs expected by question-engine
+                  answerKey: {
+                    pairs: matchingRows
+                      .filter((r) => r.left.trim().length > 0 && r.right.trim().length > 0)
+                      .map((r) => ({ left: r.left.trim(), right: r.right.trim() })),
+                    imageUrl,
+                  },
+                }
+              : {
+                  id: questionId,
+                  bankId,
+                  subject: bank?.subject ?? "",
+                  prompt,
+                  questionType: "true-false",
+                  maxScore: Number(maxScore),
+                  options: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => item.text.trim()),
+                  answerKey: {
+                    statements: trueFalseRows
+                      .filter((item) => item.text.trim().length > 0)
+                      .map((item) => ({
+                        text: item.text.trim(),
+                        isTrue: item.answer === "Benar",
+                      })),
+                    imageUrl,
+                  },
+                };
 
       const response = await fetch("/api/questions", {
         method: "POST",
@@ -288,7 +342,9 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
           ? "Soal essay berhasil dibuat"
           : createMode === "multiple-choice-complex"
             ? "Soal pilihan ganda kompleks berhasil dibuat"
-            : "Soal benar/salah berhasil dibuat"
+            : createMode === "matching"
+              ? "Soal menjodohkan berhasil dibuat"
+              : "Soal benar/salah berhasil dibuat"
       );
       resetForm(createMode);
       await refreshQuestions();
@@ -342,6 +398,15 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                 }`}
               >
                 Pilihan Ganda Kompleks
+              </button>
+              <button
+                type="button"
+                onClick={() => resetForm("matching")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "matching" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Menjodohkan
               </button>
               <button
                 type="button"
@@ -438,6 +503,47 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                     ))}
                   </div>
                 </div>
+              ) : createMode === "matching" ? (
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-700">Daftar Pasangan (kiri → kanan)</p>
+                    <button
+                      type="button"
+                      onClick={addMatchingRow}
+                      className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                    >
+                      Tambah Baris
+                    </button>
+                  </div>
+
+                  {matchingRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                      <input
+                        type="text"
+                        placeholder="Teks kiri"
+                        value={row.left}
+                        onChange={(event) => updateMatchingRow(row.id, "left", event.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2"
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Teks kanan"
+                        value={row.right}
+                        onChange={(event) => updateMatchingRow(row.id, "right", event.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeMatchingRow(row.id)}
+                        className="rounded-lg border border-red-300 px-3 py-2 text-xs text-red-600"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
@@ -515,7 +621,9 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                     ? "Simpan Soal Essay"
                     : createMode === "multiple-choice-complex"
                       ? "Simpan Soal Pilihan Ganda Kompleks"
-                      : "Simpan Soal Benar / Salah"}
+                      : createMode === "matching"
+                        ? "Simpan Soal Menjodohkan"
+                        : "Simpan Soal Benar / Salah"}
               </button>
             </form>
           </section>

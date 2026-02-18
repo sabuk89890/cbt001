@@ -1,0 +1,378 @@
+﻿[
+    {
+        "accountId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+        "alias":  [
+                      {
+                          "configuredBy":  "A",
+                          "configuredChangedAt":  1771384689383,
+                          "createdAt":  1771384689383,
+                          "deployment":  "@{alias=System.Object[]; aliasAssigned=1771404155873; builds=System.Object[]; createdAt=1771404127030; createdIn=sfo1; creator=; deploymentHostname=cbt001-9pdq70a5t-feris-projects-71d125e3; forced=False; id=dpl_AXLTNnAZdwT6ftR2ZK8xi8FjNv6R; meta=; name=cbt001; plan=hobby; private=True; readyState=READY; target=production; teamId=team_OfcNYbFSKWpPSGiYGYI7wKsj; type=LAMBDAS; url=cbt001-9pdq70a5t-feris-projects-71d125e3.vercel.app; userId=sJehv1WmbF4vmlBPEO8X58Kw; withCache=False}",
+                          "domain":  "cbt001.vercel.app",
+                          "environment":  "production",
+                          "gitBranch":  null,
+                          "redirect":  null,
+                          "target":  "PRODUCTION"
+                      }
+                  ],
+        "autoExposeSystemEnvs":  true,
+        "autoAssignCustomDomains":  true,
+        "autoAssignCustomDomainsUpdatedBy":  "system",
+        "buildCommand":  null,
+        "createdAt":  1771384689426,
+        "deploymentExpiration":  {
+                                     "expirationDays":  180,
+                                     "expirationDaysProduction":  365,
+                                     "expirationDaysCanceled":  30,
+                                     "expirationDaysErrored":  90,
+                                     "deploymentsToKeep":  10
+                                 },
+        "devCommand":  null,
+        "directoryListing":  false,
+        "env":  [
+                    {
+                        "key":  "NEXT_PUBLIC_SUPABASE_URL",
+                        "target":  "production preview development",
+                        "configurationId":  null,
+                        "createdAt":  1771384689339,
+                        "updatedAt":  1771384689339,
+                        "createdBy":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                        "updatedBy":  null,
+                        "id":  "9rxFpOwo5k92hRG4",
+                        "legacyValue":  "GlnxZ6+ow/f6hsDq86gc5602DELNhlEPWfPI3KECw3QOweBzuTfHH9VlTQIWTen0H6bKM+NFO9U3Re/hUoxrmw==",
+                        "type":  "encrypted",
+                        "value":  "eyJ2IjoidjIiLCJjIjoiVUdUellPL1hwN21ndE9jWmRmRmFYZWlBdzRPalpOVW1JSERqeEpJSG9KVVFVU0lyV2Zwdk1NaFZxMSswQmdvMjZNRVVUYTN4NEF6NmhCODQzZHJvV3kzSE10aGROQ1RtZzF3anpMMTVoYksveFlpRW5LNXl2c2ZXbjVQcDZoYTBvMXZjQW14VnFUT2w0YldGWHdkeWZ4UlpCOWw0NFhIcVlGRW9qUll4TlYwT2VYL1VXVE9jcXNGeWlpND0iLCJrIjpbMTg0LDEsMiwzLDAsMTIwLDM3LDIxMCw0OCwxMjksMjExLDEwNCwxODUsNiwyMzgsMjcsMjU1LDU4LDIwOSwxNDYsMTIzLDEyNiwxOTEsMTU5LDE3MiwxNjAsOTAsMTU1LDEzNSwxMjMsMjM2LDExNSwxOTYsMzEsOTIsMTI4LDEzMSwzMywxLDgwLDYsMTEyLDI0LDk5LDIwNSwyNTIsMjQ4LDIxLDEyNSwxNDMsMjQ1LDY1LDQ3LDEwMiwxMTQsMCwwLDAsMTI2LDQ4LDEyNCw2LDksNDIsMTM0LDcyLDEzNCwyNDcsMTMsMSw3LDYsMTYwLDExMSw0OCwxMDksMiwxLDAsNDgsMTA0LDYsOSw0MiwxMzQsNzIsMTM0LDI0NywxMywxLDcsMSw0OCwzMCw2LDksOTYsMTM0LDcyLDEsMTAxLDMsNCwxLDQ2LDQ4LDE3LDQsMTIsMTYzLDIxMCwyMTksMjQzLDE5NCwxNTYsODcsMjM4LDE5NCwyMDMsOTEsMTYxLDIsMSwxNiwxMjgsNTksMTY5LDE2MCwzMiwzMywxMDAsMTc4LDIyNSwyMDksOTMsMjI4LDE2MSw2MywyMjQsMTUzLDcyLDgsMTIyLDk1LDI4LDI1NSw3OCw0Myw4OSwxOTQsMTI1LDI5LDc4LDc4LDQ4LDE5Myw5NiwxNzMsMTA3LDE2OCwxMDIsNjYsMTAxLDQsMjAyLDEzOSwyNCwyMjcsMTQyLDcsODksNDYsNDYsNTcsMjI3LDU3LDc4LDQwLDcsMjA1LDExLDgyLDE4MywxMSw3OV19"
+                    },
+                    {
+                        "key":  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+                        "target":  "production preview development",
+                        "configurationId":  null,
+                        "createdAt":  1771384689339,
+                        "updatedAt":  1771384689339,
+                        "createdBy":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                        "updatedBy":  null,
+                        "id":  "kqxtxZE9pSUNVmxv",
+                        "legacyValue":  "iMIwBfP56ZAZJxPDg9NzEX9adu2imTY38FZFO7NeoOVmTuXC85QI+JMCfjQwn7UNiiaCqJ5mIdx+YFD0YFdhpQ==",
+                        "type":  "encrypted",
+                        "value":  "eyJ2IjoidjIiLCJjIjoiMmpvRlVKcXQ2VWpYUGZWKzZVQ3A4cjZySFQ4RGtkTXNCbk9FTXcweWRiUFVXdWtpVm1uRkRmRzBLaTJJcEo2clk2Mi90Skx6bU95eVpudy9vVWxrcE5xa2RRMlZlMkdXZjZMNVpqT1VGOHptZGxPOGxYWEowVzBYbnZ1K1VPQkhHUk4zQmYrM3hGcUtDd2tab1ZiK0g1YXBNTmVmNjlyZzNreElOc0tLNFJPR01vZXNXanBkblVqRHpqVVlxL3EvTW1XbVFRPT0iLCJrIjpbMTg0LDEsMiwzLDAsMTIwLDM3LDIxMCw0OCwxMjksMjExLDEwNCwxODUsNiwyMzgsMjcsMjU1LDU4LDIwOSwxNDYsMTIzLDEyNiwxOTEsMTU5LDE3MiwxNjAsOTAsMTU1LDEzNSwxMjMsMjM2LDExNSwxOTYsMzEsOTIsMTI4LDEzMSwzMywxLDU3LDE2OSwxNiwyMjQsOTksODQsMTEyLDE3OSwxOTQsMjM5LDEwNywxMjcsMTAsMTQ5LDIxMCwyMTYsMCwwLDAsMTI2LDQ4LDEyNCw2LDksNDIsMTM0LDcyLDEzNCwyNDcsMTMsMSw3LDYsMTYwLDExMSw0OCwxMDksMiwxLDAsNDgsMTA0LDYsOSw0MiwxMzQsNzIsMTM0LDI0NywxMywxLDcsMSw0OCwzMCw2LDksOTYsMTM0LDcyLDEsMTAxLDMsNCwxLDQ2LDQ4LDE3LDQsMTIsNzksNDIsNzEsMjI2LDMzLDE0NCwxNzcsMjQzLDE3NCwyMjIsMTQ4LDE0MiwyLDEsMTYsMTI4LDU5LDIzNiwyOCw3NywxNTYsMjE4LDIxMCwyMDUsOTcsODMsMjA4LDU5LDE1OCwxNyw1MCwxNTgsMTU1LDEzLDY4LDkyLDE3NiwxNjYsMTU5LDI0NCw4NywxNjUsMjE1LDkxLDIxOSwyNTUsMTk0LDEzNCw2LDM1LDI0Nyw0OCwxMzgsMTg4LDkyLDkzLDExNiwyMiwzMCwxMiwyMjEsMTYyLDI0MCwxMzgsMTU0LDIxNCw3Nyw2NywxMjEsMzIsMjUxLDEwNCwxNjksNDgsMTk2LDU1XX0="
+                    },
+                    {
+                        "key":  "SUPABASE_SERVICE_ROLE_KEY",
+                        "target":  "production preview development",
+                        "configurationId":  null,
+                        "createdAt":  1771384689339,
+                        "updatedAt":  1771384689339,
+                        "createdBy":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                        "updatedBy":  null,
+                        "id":  "xXEtBzoXVepeRoDZ",
+                        "legacyValue":  "AftXNVOxx9EEQv+l0H1ckVukR5m2bvX71eSWBYkC/cKutRjE2ZfbvsC05ASUpO+nLoFE76+qp4FlgboCKzya7Q==",
+                        "type":  "encrypted",
+                        "value":  "eyJ2IjoidjIiLCJjIjoiWGltKzZKZVpNWmxJU3lBeFJMeDNHeU5mREQ0dWdYZEJxbVV0YmorQ3JUSFNYZ3BsbldvdW93MlNTY3hCeTI1S01mVlZnaXo1cU5OOEc5ZkVjZys1TVV6MGdsa3Ryb2dST2g2c2h1UStuM2ZjQXNUM1lQNnpERng2ckJmOGFuUEpaQ3BuYy84Mm50cWI1MDVwbGdManZlVVd2NStZQVBkTHFFTVJ1UWZVSmJZeDZnd3FSdDBiL1NHRWk2VT0iLCJrIjpbMTg0LDEsMiwzLDAsMTIwLDM3LDIxMCw0OCwxMjksMjExLDEwNCwxODUsNiwyMzgsMjcsMjU1LDU4LDIwOSwxNDYsMTIzLDEyNiwxOTEsMTU5LDE3MiwxNjAsOTAsMTU1LDEzNSwxMjMsMjM2LDExNSwxOTYsMzEsOTIsMTI4LDEzMSwzMywxLDU3LDE2OSwxNiwyMjQsOTksODQsMTEyLDE3OSwxOTQsMjM5LDEwNywxMjcsMTAsMTQ5LDIxMCwyMTYsMCwwLDAsMTI2LDQ4LDEyNCw2LDksNDIsMTM0LDcyLDEzNCwyNDcsMTMsMSw3LDYsMTYwLDExMSw0OCwxMDksMiwxLDAsNDgsMTA0LDYsOSw0MiwxMzQsNzIsMTM0LDI0NywxMywxLDcsMSw0OCwzMCw2LDksOTYsMTM0LDcyLDEsMTAxLDMsNCwxLDQ2LDQ4LDE3LDQsMTIsNzksNDIsNzEsMjI2LDMzLDE0NCwxNzcsMjQzLDE3NCwyMjIsMTQ4LDE0MiwyLDEsMTYsMTI4LDU5LDIzNiwyOCw3NywxNTYsMjE4LDIxMCwyMDUsOTcsODMsMjA4LDU5LDE1OCwxNyw1MCwxNTgsMTU1LDEzLDY4LDkyLDE3NiwxNjYsMTU5LDI0NCw4NywxNjUsMjE1LDkxLDIxOSwyNTUsMTk0LDEzNCw2LDM1LDI0Nyw0OCwxMzgsMTg4LDkyLDkzLDExNiwyMiwzMCwxMiwyMjEsMTYyLDI0MCwxMzgsMTU0LDIxNCw3Nyw2NywxMjEsMzIsMjUxLDEwNCwxNjksNDgsMTk2LDU1XX0="
+                    }
+                ],
+        "framework":  "nextjs",
+        "gitForkProtection":  true,
+        "id":  "prj_DF5prGSe9u2SGEDjCuuAyDGuWxVn",
+        "installCommand":  null,
+        "name":  "cbt001",
+        "nodeVersion":  "24.x",
+        "outputDirectory":  null,
+        "publicSource":  null,
+        "resourceConfig":  {
+                               "fluid":  true,
+                               "functionDefaultRegions":  [
+                                                              "iad1"
+                                                          ]
+                           },
+        "rootDirectory":  null,
+        "serverlessFunctionRegion":  "iad1",
+        "sourceFilesOutsideRootDirectory":  true,
+        "speedInsights":  {
+                              "id":  "2orHx2H44FptBHUlqxKcTMdGXiL",
+                              "hasData":  false
+                          },
+        "ssoProtection":  {
+                              "deploymentType":  "all_except_custom_domains"
+                          },
+        "updatedAt":  1771418475461,
+        "live":  false,
+        "gitComments":  {
+                            "onCommit":  false,
+                            "onPullRequest":  true
+                        },
+        "gitProviderOptions":  {
+                                   "createDeployments":  "enabled"
+                               },
+        "webAnalytics":  {
+                             "id":  "1hGxFcduoSoXA5obA8jNK9Sxy"
+                         },
+        "oidcTokenConfig":  {
+                                "enabled":  true,
+                                "issuerMode":  "team"
+                            },
+        "link":  {
+                     "type":  "github",
+                     "repo":  "cbt001",
+                     "repoId":  1160502882,
+                     "org":  "sabuk89890",
+                     "repoOwnerId":  261644681,
+                     "gitCredentialId":  "cred_d2eb604a7eff1083e25583c2de78662ccccea3b8",
+                     "productionBranch":  "main",
+                     "sourceless":  true,
+                     "createdAt":  1771384689337,
+                     "updatedAt":  1771384689337,
+                     "deployHooks":  [
+
+                                     ]
+                 },
+        "latestDeployments":  [
+                                  {
+                                      "alias":  "cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app",
+                                      "aliasAssigned":  1771422266110,
+                                      "builds":  "",
+                                      "createdAt":  1771422239736,
+                                      "createdIn":  "sfo1",
+                                      "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=sabuk89890}",
+                                      "deploymentHostname":  "cbt001-jsf45grff-feris-projects-71d125e3",
+                                      "forced":  false,
+                                      "id":  "dpl_noQEPKej4nQAMbsme75wByZdFuiU",
+                                      "meta":  "@{githubCommitAuthorName=cbt001; githubCommitAuthorEmail=smpn1bukitbenermeriahppdb@gmail.com; githubCommitMessage=ci: trigger redeploy; githubCommitOrg=sabuk89890; githubCommitRef=feature/matching-ui; githubCommitRepo=cbt001; githubCommitSha=b2d0d42fcde12d92a778e98fa45708f159b60ddd; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt001; githubRepoOwnerType=User; githubCommitRepoId=1160502882; githubRepoId=1160502882; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=sabuk89890; repoPushedAt=1771422237000; branchAlias=cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app; lambdaRuntimeStats={\"nodejs\":4}; bundler=turbopack}",
+                                      "name":  "cbt001",
+                                      "plan":  "hobby",
+                                      "private":  true,
+                                      "readyState":  "READY",
+                                      "target":  null,
+                                      "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                      "type":  "LAMBDAS",
+                                      "url":  "cbt001-jsf45grff-feris-projects-71d125e3.vercel.app",
+                                      "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                      "withCache":  false
+                                  },
+                                  {
+                                      "alias":  "cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app",
+                                      "aliasAssigned":  1771421546209,
+                                      "builds":  "",
+                                      "createdAt":  1771421518533,
+                                      "createdIn":  "sfo1",
+                                      "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=sabuk89890}",
+                                      "deploymentHostname":  "cbt001-1kf5dww0o-feris-projects-71d125e3",
+                                      "forced":  false,
+                                      "id":  "dpl_Bghdzv5XAb18HWkKJf5Z3iZf84Z7",
+                                      "meta":  "@{githubCommitAuthorName=cbt001; githubCommitAuthorEmail=smpn1bukitbenermeriahppdb@gmail.com; githubCommitMessage=fix(admin): type subjects and editSubjectId; githubCommitOrg=sabuk89890; githubCommitRef=feature/matching-ui; githubCommitRepo=cbt001; githubCommitSha=debb1c828111f558d4abec1cfdca7e8a0aeac45e; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt001; githubRepoOwnerType=User; githubCommitRepoId=1160502882; githubRepoId=1160502882; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=sabuk89890; repoPushedAt=1771421516000; branchAlias=cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app; lambdaRuntimeStats={\"nodejs\":4}; bundler=turbopack}",
+                                      "name":  "cbt001",
+                                      "plan":  "hobby",
+                                      "private":  true,
+                                      "readyState":  "READY",
+                                      "target":  null,
+                                      "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                      "type":  "LAMBDAS",
+                                      "url":  "cbt001-1kf5dww0o-feris-projects-71d125e3.vercel.app",
+                                      "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                      "withCache":  false
+                                  }
+                              ],
+        "targets":  {
+                        "production":  {
+                                           "alias":  "cbt001-feris-projects-71d125e3.vercel.app cbt001-git-main-feris-projects-71d125e3.vercel.app",
+                                           "aliasAssigned":  null,
+                                           "builds":  "",
+                                           "createdAt":  1771418475021,
+                                           "createdIn":  "sfo1",
+                                           "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=sabuk89890}",
+                                           "deploymentHostname":  "cbt001-lx6ylbunz-feris-projects-71d125e3",
+                                           "forced":  false,
+                                           "id":  "dpl_8k6vvw1Y7Jj2e2Z7g7ps2vEbfXuJ",
+                                           "meta":  "@{githubCommitAuthorName=cbt001; githubCommitAuthorEmail=smpn1bukitbenermeriahppdb@gmail.com; githubCommitMessage=chore: trigger vercel deploy (manual); githubCommitOrg=sabuk89890; githubCommitRef=main; githubCommitRepo=cbt001; githubCommitSha=edcb8ddf186ba3a58114d6bf8d5d06c6077f1436; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt001; githubRepoOwnerType=User; githubCommitRepoId=1160502882; githubRepoId=1160502882; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=sabuk89890; repoPushedAt=1771418472000; branchAlias=cbt001-git-main-feris-projects-71d125e3.vercel.app; bundler=turbopack}",
+                                           "name":  "cbt001",
+                                           "plan":  "hobby",
+                                           "private":  true,
+                                           "readyState":  "ERROR",
+                                           "target":  "production",
+                                           "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                           "type":  "LAMBDAS",
+                                           "url":  "cbt001-lx6ylbunz-feris-projects-71d125e3.vercel.app",
+                                           "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                           "withCache":  false
+                                       },
+                        "preview":  {
+                                        "alias":  "cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app",
+                                        "aliasAssigned":  1771422266110,
+                                        "builds":  "",
+                                        "createdAt":  1771422239736,
+                                        "createdIn":  "sfo1",
+                                        "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=sabuk89890}",
+                                        "deploymentHostname":  "cbt001-jsf45grff-feris-projects-71d125e3",
+                                        "forced":  false,
+                                        "id":  "dpl_noQEPKej4nQAMbsme75wByZdFuiU",
+                                        "meta":  "@{githubCommitAuthorName=cbt001; githubCommitAuthorEmail=smpn1bukitbenermeriahppdb@gmail.com; githubCommitMessage=ci: trigger redeploy; githubCommitOrg=sabuk89890; githubCommitRef=feature/matching-ui; githubCommitRepo=cbt001; githubCommitSha=b2d0d42fcde12d92a778e98fa45708f159b60ddd; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt001; githubRepoOwnerType=User; githubCommitRepoId=1160502882; githubRepoId=1160502882; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=sabuk89890; repoPushedAt=1771422237000; branchAlias=cbt001-git-feature-matching-ui-feris-projects-71d125e3.vercel.app; lambdaRuntimeStats={\"nodejs\":4}; bundler=turbopack}",
+                                        "name":  "cbt001",
+                                        "plan":  "hobby",
+                                        "private":  true,
+                                        "readyState":  "READY",
+                                        "target":  null,
+                                        "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                        "type":  "LAMBDAS",
+                                        "url":  "cbt001-jsf45grff-feris-projects-71d125e3.vercel.app",
+                                        "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                        "withCache":  false
+                                    }
+                    }
+    },
+    {
+        "accountId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+        "alias":  [
+                      {
+                          "configuredBy":  "A",
+                          "configuredChangedAt":  1771247939863,
+                          "createdAt":  1771247939863,
+                          "deployment":  "@{alias=System.Object[]; aliasAssigned=1771326276357; builds=System.Object[]; createdAt=1771326264497; createdIn=sfo1; creator=; deploymentHostname=cbtferi-fwh3jh7ec-feris-projects-71d125e3; forced=False; id=dpl_HQEXwK33iKzRGvRzazJDBFjicBZ5; meta=; name=cbtferi; plan=hobby; private=True; readyState=READY; target=production; teamId=team_OfcNYbFSKWpPSGiYGYI7wKsj; type=LAMBDAS; url=cbtferi-fwh3jh7ec-feris-projects-71d125e3.vercel.app; userId=sJehv1WmbF4vmlBPEO8X58Kw; withCache=False}",
+                          "domain":  "cbtferi.vercel.app",
+                          "environment":  "production",
+                          "gitBranch":  null,
+                          "redirect":  null,
+                          "target":  "PRODUCTION"
+                      }
+                  ],
+        "autoExposeSystemEnvs":  true,
+        "autoAssignCustomDomains":  true,
+        "autoAssignCustomDomainsUpdatedBy":  "system",
+        "buildCommand":  "npm run build",
+        "createdAt":  1771247939874,
+        "deploymentExpiration":  {
+                                     "expirationDays":  180,
+                                     "expirationDaysProduction":  365,
+                                     "expirationDaysCanceled":  30,
+                                     "expirationDaysErrored":  90,
+                                     "deploymentsToKeep":  10
+                                 },
+        "devCommand":  null,
+        "directoryListing":  false,
+        "env":  [
+
+                ],
+        "framework":  "vite",
+        "gitForkProtection":  true,
+        "id":  "prj_fwf5S0IA85xJGFatf1Y0qqobUU7e",
+        "installCommand":  null,
+        "name":  "cbtferi",
+        "nodeVersion":  "24.x",
+        "outputDirectory":  "dist",
+        "publicSource":  null,
+        "resourceConfig":  {
+                               "fluid":  true,
+                               "functionDefaultRegions":  [
+                                                              "iad1"
+                                                          ]
+                           },
+        "rootDirectory":  null,
+        "serverlessFunctionRegion":  "iad1",
+        "sourceFilesOutsideRootDirectory":  true,
+        "speedInsights":  {
+                              "id":  "QeFAtw2PYWQwZoR7pnkFaB3brHK",
+                              "hasData":  false
+                          },
+        "ssoProtection":  {
+                              "deploymentType":  "all_except_custom_domains"
+                          },
+        "updatedAt":  1771326276465,
+        "live":  false,
+        "gitComments":  {
+                            "onCommit":  false,
+                            "onPullRequest":  true
+                        },
+        "gitProviderOptions":  {
+                                   "createDeployments":  "enabled"
+                               },
+        "webAnalytics":  {
+                             "id":  "JA3dGG8RYeiLHOK8vGm1xqOxq"
+                         },
+        "oidcTokenConfig":  {
+                                "enabled":  true,
+                                "issuerMode":  "team"
+                            },
+        "link":  {
+                     "type":  "github",
+                     "repo":  "cbt-200",
+                     "repoId":  1158933460,
+                     "org":  "sabuk89890",
+                     "repoOwnerId":  261644681,
+                     "gitCredentialId":  "cred_d2eb604a7eff1083e25583c2de78662ccccea3b8",
+                     "productionBranch":  "main",
+                     "sourceless":  true,
+                     "createdAt":  1771247939818,
+                     "updatedAt":  1771247939818,
+                     "deployHooks":  [
+
+                                     ]
+                 },
+        "latestDeployments":  [
+                                  {
+                                      "alias":  "cbtferi.vercel.app cbtferi-feris-projects-71d125e3.vercel.app cbtferi-git-main-feris-projects-71d125e3.vercel.app",
+                                      "aliasAssigned":  1771326276357,
+                                      "builds":  "",
+                                      "createdAt":  1771326264497,
+                                      "createdIn":  "sfo1",
+                                      "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=h15629526027}",
+                                      "deploymentHostname":  "cbtferi-fwh3jh7ec-feris-projects-71d125e3",
+                                      "forced":  false,
+                                      "id":  "dpl_HQEXwK33iKzRGvRzazJDBFjicBZ5",
+                                      "meta":  "@{githubCommitAuthorName=Your Name; githubCommitAuthorEmail=your.email@example.com; githubCommitMessage=fix: enable local admin login fallback and prevent auth crash; githubCommitOrg=sabuk89890; githubCommitRef=main; githubCommitRepo=cbt-200; githubCommitSha=937a22b512f5ac35179f16931a36662cc3225599; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt-200; githubRepoOwnerType=User; githubCommitRepoId=1158933460; githubRepoId=1158933460; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=h15629526027; repoPushedAt=1771326262000; branchAlias=cbtferi-git-main-feris-projects-71d125e3.vercel.app}",
+                                      "name":  "cbtferi",
+                                      "plan":  "hobby",
+                                      "private":  true,
+                                      "readyState":  "READY",
+                                      "target":  "production",
+                                      "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                      "type":  "LAMBDAS",
+                                      "url":  "cbtferi-fwh3jh7ec-feris-projects-71d125e3.vercel.app",
+                                      "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                      "withCache":  false
+                                  },
+                                  {
+                                      "alias":  "cbtferi.vercel.app cbtferi-feris-projects-71d125e3.vercel.app cbtferi-git-main-feris-projects-71d125e3.vercel.app",
+                                      "aliasAssigned":  1771326006758,
+                                      "builds":  "",
+                                      "createdAt":  1771325995776,
+                                      "createdIn":  "sfo1",
+                                      "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=h15629526027}",
+                                      "deploymentHostname":  "cbtferi-kgun2ikvh-feris-projects-71d125e3",
+                                      "forced":  false,
+                                      "id":  "dpl_7uHuN1z6uonKXtV18CDmN69UqhHg",
+                                      "meta":  "@{githubCommitAuthorName=Your Name; githubCommitAuthorEmail=your.email@example.com; githubCommitMessage=feat: redirect root to login and enable auth register route; githubCommitOrg=sabuk89890; githubCommitRef=main; githubCommitRepo=cbt-200; githubCommitSha=1619bd586f1754b68df4d90e632973186290a418; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt-200; githubRepoOwnerType=User; githubCommitRepoId=1158933460; githubRepoId=1158933460; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=h15629526027; repoPushedAt=1771325992000; branchAlias=cbtferi-git-main-feris-projects-71d125e3.vercel.app}",
+                                      "name":  "cbtferi",
+                                      "plan":  "hobby",
+                                      "private":  true,
+                                      "readyState":  "READY",
+                                      "target":  "production",
+                                      "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                      "type":  "LAMBDAS",
+                                      "url":  "cbtferi-kgun2ikvh-feris-projects-71d125e3.vercel.app",
+                                      "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                      "withCache":  false
+                                  }
+                              ],
+        "targets":  {
+                        "production":  {
+                                           "alias":  "cbtferi.vercel.app cbtferi-feris-projects-71d125e3.vercel.app cbtferi-git-main-feris-projects-71d125e3.vercel.app",
+                                           "aliasAssigned":  1771326276357,
+                                           "builds":  "",
+                                           "createdAt":  1771326264497,
+                                           "createdIn":  "sfo1",
+                                           "creator":  "@{uid=sJehv1WmbF4vmlBPEO8X58Kw; email=smpn1bukitbenermeriahppdb@gmail.com; username=smpn1bukitbenermeriahppdb-1963; githubLogin=h15629526027}",
+                                           "deploymentHostname":  "cbtferi-fwh3jh7ec-feris-projects-71d125e3",
+                                           "forced":  false,
+                                           "id":  "dpl_HQEXwK33iKzRGvRzazJDBFjicBZ5",
+                                           "meta":  "@{githubCommitAuthorName=Your Name; githubCommitAuthorEmail=your.email@example.com; githubCommitMessage=fix: enable local admin login fallback and prevent auth crash; githubCommitOrg=sabuk89890; githubCommitRef=main; githubCommitRepo=cbt-200; githubCommitSha=937a22b512f5ac35179f16931a36662cc3225599; githubDeployment=1; githubOrg=sabuk89890; githubRepo=cbt-200; githubRepoOwnerType=User; githubCommitRepoId=1158933460; githubRepoId=1158933460; githubRepoVisibility=public; githubHost=github.com; githubCommitAuthorLogin=h15629526027; repoPushedAt=1771326262000; branchAlias=cbtferi-git-main-feris-projects-71d125e3.vercel.app}",
+                                           "name":  "cbtferi",
+                                           "plan":  "hobby",
+                                           "private":  true,
+                                           "readyState":  "READY",
+                                           "target":  "production",
+                                           "teamId":  "team_OfcNYbFSKWpPSGiYGYI7wKsj",
+                                           "type":  "LAMBDAS",
+                                           "url":  "cbtferi-fwh3jh7ec-feris-projects-71d125e3.vercel.app",
+                                           "userId":  "sJehv1WmbF4vmlBPEO8X58Kw",
+                                           "withCache":  false
+                                       }
+                    }
+    }
+]
