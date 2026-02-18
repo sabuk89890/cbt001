@@ -3,18 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 
-type LoginScreenProps = {
-  initialRole?: "admin" | "guru" | "student";
-};
-
-const roleLabel: Record<"admin" | "guru" | "student", string> = {
-  admin: "Admin",
-  guru: "Guru",
-  student: "Siswa",
-};
-
-export function LoginScreen({ initialRole = "student" }: LoginScreenProps) {
-  const [role, setRole] = useState<"admin" | "guru" | "student">(initialRole);
+export function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -34,7 +23,6 @@ export function LoginScreen({ initialRole = "student" }: LoginScreenProps) {
         body: JSON.stringify({
           username,
           password,
-          role,
         }),
       });
 
@@ -76,21 +64,9 @@ export function LoginScreen({ initialRole = "student" }: LoginScreenProps) {
         <section className="bg-slate-100 px-4 py-10">
           <div className="mx-auto w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <h2 className="text-4xl font-semibold text-slate-700">Selamat Datang</h2>
-            <p className="mt-2 text-lg text-slate-500">
-              Silahkan login {roleLabel[role]} dengan akun yang Anda miliki
-            </p>
+            <p className="mt-2 text-lg text-slate-500">Silahkan login dengan akun yang Anda miliki</p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-              <select
-                value={role}
-                onChange={(event) => setRole(event.target.value as "admin" | "guru" | "student")}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base text-slate-700 outline-none focus:border-blue-600"
-              >
-                <option value="student">Siswa</option>
-                <option value="guru">Guru</option>
-                <option value="admin">Admin</option>
-              </select>
-
               <input
                 type="text"
                 placeholder="Username"

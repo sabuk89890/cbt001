@@ -4,16 +4,15 @@ import { createSupabaseAdminClient, createSupabaseAuthClient } from "@/lib/supab
 type LoginPayload = {
   username?: string;
   password?: string;
-  role?: "admin" | "guru" | "student";
 };
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as LoginPayload;
 
-    if (!body.username || !body.password || !body.role) {
+    if (!body.username || !body.password) {
       return NextResponse.json(
-        { error: "username, password, dan role wajib diisi" },
+        { error: "username dan password wajib diisi" },
         { status: 400 }
       );
     }
@@ -70,19 +69,6 @@ export async function POST(request: Request) {
     if (!profile) {
       return NextResponse.json(
         { error: "Profil user belum terdaftar di tabel profiles" },
-        { status: 403 }
-      );
-    }
-
-    const allowedRoles: Record<NonNullable<LoginPayload["role"]>, string[]> = {
-      admin: ["admin"],
-      guru: ["admin", "guru"],
-      student: ["student"],
-    };
-
-    if (!allowedRoles[body.role].includes(profile.role)) {
-      return NextResponse.json(
-        { error: `Role tidak sesuai. Ditemukan role '${profile.role}'` },
         { status: 403 }
       );
     }
