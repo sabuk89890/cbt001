@@ -53,6 +53,8 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   const [answerKeySlash, setAnswerKeySlash] = useState("");
   const [maxScore, setMaxScore] = useState("10");
   const [imageUrl, setImageUrl] = useState("");
+  const [allowManualReview, setAllowManualReview] = useState(true);
+  const [allowManualReviewTouched, setAllowManualReviewTouched] = useState(false);
 
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
@@ -123,6 +125,8 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setAnswerKeySlash("");
     setMaxScore("10");
     setImageUrl("");
+    setAllowManualReview(true);
+    setAllowManualReviewTouched(false);
     setOptionA("");
     setOptionB("");
     setOptionC("");
@@ -213,6 +217,11 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   async function handleCreateQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    // if user didn't manually toggle allowManualReview, set it automatically from answerKeySlash
+    if (!allowManualReviewTouched) {
+      setAllowManualReview(answerKeySlash.trim().length === 0);
+    }
+
     if (!bankId) {
       setMessage("Bank soal tidak valid");
       return;
@@ -253,7 +262,7 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
           questionType: "essay",
           correctAnswer: answerKeySlash,
           maxScore: Number(maxScore),
-          answerKey: { imageUrl },
+          answerKey: { imageUrl, allowManualReview },
         };
       } else if (createMode === "multiple-choice-complex") {
         payload = {
@@ -340,6 +349,13 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     (item) => item.length > 0
   );
 
+  // auto-sync allowManualReview with answerKeySlash unless user toggled override
+  useEffect(() => {
+    if (!allowManualReviewTouched) {
+      setAllowManualReview(answerKeySlash.trim().length === 0);
+    }
+  }, [answerKeySlash, allowManualReviewTouched]);
+
   return (
     <main className="min-h-screen px-6 py-8 text-slate-800">
       <div className="mx-auto w-full max-w-5xl space-y-5">
@@ -392,14 +408,28 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               />
 
               {createMode === "essay" ? (
-                <input
-                  type="text"
-                  placeholder="Kunci jawaban dipisah '/' contoh: ayam/sapi/kuda"
-                  value={answerKeySlash}
-                  onChange={(event) => setAnswerKeySlash(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2"
-                  required
-                />
+                <>
+                  <input
+                    type="text"
+                    placeholder="Kunci jawaban dipisah '/' contoh: ayam/sapi/kuda"
+                    value={answerKeySlash}
+                    onChange={(event) => setAnswerKeySlash(event.target.value)}
+                    className="rounded-lg border border-slate-300 px-3 py-2"
+                    required
+                  />
+
+                  <label className="mt-2 flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={allowManualReview}
+                      onChange={(e) => { setAllowManualReviewTouched(true); setAllowManualReview(e.target.checked); }}
+                      className="h-4 w-4"
+                    />
+                    <span>Izinkan koreksi manual (allowManualReview)</span>
+                  </label>
+
+                  <p className="text-xs text-slate-500">Kosongkan kunci jawaban untuk mengaktifkan allowManualReview otomatis.</p>
+                </>
               ) : createMode === "multiple-choice-complex" ? (
                 <div className="grid gap-2">
                   <p className="text-sm font-medium text-slate-700">4 Opsi Jawaban (wajib 4)</p>
