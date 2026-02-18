@@ -39,7 +39,7 @@ npm run dev
 2. Jalankan SQL di [supabase/schema.sql](supabase/schema.sql) melalui Supabase SQL Editor.
 3. Jalankan seed data awal di [supabase/seed.sql](supabase/seed.sql).
 4. Tambahkan user di Supabase Auth (email + password).
-5. Isi tabel `profiles` dengan `id` user auth, `role`, `username`, dan `email`.
+5. Isi tabel `profiles` dengan `id` user auth, `role`, dan `username`.
 6. Login aplikasi menggunakan `username + password`.
 
 Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles.sql).

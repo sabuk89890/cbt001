@@ -1,24 +1,51 @@
--- Jalankan setelah user dibuat di Supabase Auth dan baris role sudah ada di public.profiles.
--- Login aplikasi tetap pakai username + password (tanpa input email).
+-- Jalankan setelah user dibuat di Supabase Auth.
+-- Login aplikasi memakai username + password (tanpa input email).
 
--- 1) Sinkron email profiles dari auth.users (otomatis, tidak perlu input email manual)
-update public.profiles as p
-set email = u.email
-from auth.users as u
-where p.id = u.id
-  and (p.email is null or p.email <> u.email);
+-- 1) Pastikan kolom username tersedia
+alter table public.profiles
+  add column if not exists username text;
 
--- 2) Set username admin (ubah sesuai kebutuhan)
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'profiles_username_key'
+  ) then
+    alter table public.profiles
+      add constraint profiles_username_key unique (username);
+  end if;
+end $$;
+
+-- 2) Buat profile untuk semua user auth yang belum punya profile
+insert into public.profiles (id, role, username, full_name, class_name)
+select
+  u.id,
+  'student',
+  'user_' || left(replace(u.id::text, '-', ''), 8),
+  coalesce(u.raw_user_meta_data ->> 'full_name', null),
+  null
+from auth.users u
+left join public.profiles p on p.id = u.id
+where p.id is null
+on conflict (id) do nothing;
+
+-- 3) Jadikan 1 akun pertama sebagai admin dan set username admin
 update public.profiles
-set username = 'burnitelong'
-where role = 'admin';
+set role = 'admin',
+    username = 'burnitelong'
+where id = (
+  select p.id
+  from public.profiles p
+  order by p.created_at asc, p.id asc
+  limit 1
+);
 
--- 3) Set username siswa (sesuai permintaan Anda)
+-- 4) Contoh username siswa
 update public.profiles
 set username = 'siswa1'
-where role = 'student';
+where role = 'student'
+  and username like 'user_%';
 
--- 4) Cek hasil
-select id, role, username, email, full_name, class_name
+-- 5) Cek hasil
+select id, role, username, full_name, class_name
 from public.profiles
-order by created_at desc;
+order by created_at asc;
