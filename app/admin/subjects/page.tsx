@@ -3,22 +3,17 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-type Subject = {
-  id: string;
-  code: string;
-  name: string;
-  created_at: string;
-};
+
 
 export default function AdminSubjectsPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState([]);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
+  const [editSubjectId, setEditSubjectId] = useState(null);
   const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -29,7 +24,7 @@ export default function AdminSubjectsPage() {
 
     try {
       const response = await fetch("/api/admin/subjects", { cache: "no-store" });
-      const result = (await response.json()) as { data?: Subject[]; error?: string };
+      const result = await response.json();
 
       if (!response.ok) {
         setMessage(result.error ?? "Gagal memuat mata pelajaran");
@@ -48,7 +43,7 @@ export default function AdminSubjectsPage() {
     void loadSubjects();
   }, []);
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+  async function handleCreate(event) {
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
@@ -62,7 +57,7 @@ export default function AdminSubjectsPage() {
         body: JSON.stringify({ code, name }),
       });
 
-      const result = (await response.json()) as { error?: string };
+      const result = await response.json();
       if (!response.ok) {
         setMessage(result.error ?? "Gagal menambah mata pelajaran");
         return;
@@ -79,7 +74,7 @@ export default function AdminSubjectsPage() {
     }
   }
 
-  async function handleDelete(subject: Subject) {
+  async function handleDelete(subject) {
     const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
     if (!confirmed) {
       return;
@@ -92,7 +87,7 @@ export default function AdminSubjectsPage() {
         method: "DELETE",
       });
 
-      const result = (await response.json()) as { message?: string; error?: string };
+      const result = await response.json();
       if (!response.ok) {
         setMessage(result.error ?? "Gagal menghapus mata pelajaran");
         return;
@@ -105,14 +100,14 @@ export default function AdminSubjectsPage() {
     }
   }
 
-  function handleStartEdit(subject: Subject) {
+  function handleStartEdit(subject) {
     setEditSubjectId(subject.id);
     setEditCode(subject.code);
     setEditName(subject.name);
     setIsEditModalOpen(true);
   }
 
-  async function handleUpdateSubject(event: FormEvent<HTMLFormElement>) {
+  async function handleUpdateSubject(event) {
     event.preventDefault();
 
     if (!editSubjectId) {
@@ -131,7 +126,7 @@ export default function AdminSubjectsPage() {
         body: JSON.stringify({ code: editCode, name: editName }),
       });
 
-      const result = (await response.json()) as { message?: string; error?: string };
+      const result = await response.json();
       if (!response.ok) {
         setMessage(result.error ?? "Gagal memperbarui mata pelajaran");
         return;

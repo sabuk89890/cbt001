@@ -9,7 +9,7 @@ export function LoginScreen() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
     setIsLoading(true);
@@ -26,13 +26,7 @@ export function LoginScreen() {
         }),
       });
 
-      const result = (await response.json()) as {
-        message?: string;
-        error?: string;
-        user?: {
-          role?: string;
-        };
-      };
+      const result = await response.json();
 
       if (!response.ok) {
         setMessage(result.error ?? "Login gagal");
