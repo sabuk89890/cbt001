@@ -1,6 +1,6 @@
 "use client";
 
-import type { ExamQuestion, MatchingQuestionUIProps, Pair, TrueFalseStatement, QuestionRendererProps } from "@/lib/cbt/types";
+// import type removed for Turbopack compatibility
 import { getRandomColor } from "../../lib/utils/color";
 import { useRef, useState } from "react";
 
