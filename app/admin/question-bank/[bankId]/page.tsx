@@ -26,11 +26,7 @@ type BankQuestion = {
   answerKey: Record<string, unknown>;
 };
 
-type CreateMode = "essay" | "multiple-choice-complex" | "true-false" | "matching";
-type MatchingRow = { id: string; left: string; right: string };
-  const [matchingLeft, setMatchingLeft] = useState<string[]>([""]);
-  const [matchingRight, setMatchingRight] = useState<string[]>([""]);
-  const [matchingPairs, setMatchingPairs] = useState<MatchingRow[]>([{ id: `m-${Date.now()}-1`, left: "", right: "" }]);
+type CreateMode = "essay" | "multiple-choice-complex" | "true-false";
 
 type TrueFalseRow = {
   id: string;
@@ -53,8 +49,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   const [answerKeySlash, setAnswerKeySlash] = useState("");
   const [maxScore, setMaxScore] = useState("10");
   const [imageUrl, setImageUrl] = useState("");
-  const [allowManualReview, setAllowManualReview] = useState(true);
-  const [allowManualReviewTouched, setAllowManualReviewTouched] = useState(false);
 
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
@@ -120,40 +114,17 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
 
   function resetForm(mode: CreateMode) {
     setCreateMode(mode);
-    setQuestionId(`${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : mode === "matching" ? "matching" : "tf"}-${Date.now()}`);
+    setQuestionId(`${mode === "essay" ? "essay" : mode === "multiple-choice-complex" ? "pgk" : "tf"}-${Date.now()}`);
     setPrompt("");
     setAnswerKeySlash("");
     setMaxScore("10");
     setImageUrl("");
-    setAllowManualReview(true);
-    setAllowManualReviewTouched(false);
     setOptionA("");
     setOptionB("");
     setOptionC("");
     setOptionD("");
     setSelectedCorrectOptions([]);
     setTrueFalseRows([{ id: `tf-${Date.now()}-1`, text: "", answer: "Benar" }]);
-    setMatchingLeft([""]);
-    setMatchingRight([""]);
-    setMatchingPairs([{ id: `m-${Date.now()}-1`, left: "", right: "" }]);
-  }
-  function addMatchingLeft() {
-    setMatchingLeft((prev) => [...prev, ""]);
-  }
-  function removeMatchingLeft(idx: number) {
-    setMatchingLeft((prev) => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx));
-  }
-  function updateMatchingLeft(idx: number, value: string) {
-    setMatchingLeft((prev) => prev.map((item, i) => i === idx ? value : item));
-  }
-  function addMatchingRight() {
-    setMatchingRight((prev) => [...prev, ""]);
-  }
-  function removeMatchingRight(idx: number) {
-    setMatchingRight((prev) => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx));
-  }
-  function updateMatchingRight(idx: number, value: string) {
-    setMatchingRight((prev) => prev.map((item, i) => i === idx ? value : item));
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -217,11 +188,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   async function handleCreateQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // if user didn't manually toggle allowManualReview, set it automatically from answerKeySlash
-    if (!allowManualReviewTouched) {
-      setAllowManualReview(answerKeySlash.trim().length === 0);
-    }
-
     if (!bankId) {
       setMessage("Bank soal tidak valid");
       return;
@@ -252,89 +218,77 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
     setMessage("");
 
     try {
-      let payload: any = {};
-      if (createMode === "essay") {
-        payload = {
-          id: questionId,
-          bankId,
-          subject: bank?.subject ?? "",
-          prompt,
-          questionType: "essay",
-          correctAnswer: answerKeySlash,
-          maxScore: Number(maxScore),
-          answerKey: { imageUrl, allowManualReview },
-        };
-      } else if (createMode === "multiple-choice-complex") {
-        payload = {
-          id: questionId,
-          bankId,
-          subject: bank?.subject ?? "",
-          prompt,
-          questionType: "multiple-choice-complex",
-          maxScore: Number(maxScore),
-          options: [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()],
-          answerKey: { correctAnswers: selectedCorrectOptions, imageUrl },
-        };
-      } else if (createMode === "true-false") {
-        payload = {
-          id: questionId,
-          bankId,
-          subject: bank?.subject ?? "",
-          prompt,
-          questionType: "true-false",
-          maxScore: Number(maxScore),
-          options: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => item.text.trim()),
-          answerKey: {
-            statements: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => ({ text: item.text.trim(), isTrue: item.answer === "Benar" })),
-            imageUrl,
-          },
-        };
-      } else if (createMode === "matching") {
-        const lefts = matchingLeft.map((x) => x.trim()).filter((x) => x);
-        const rights = matchingRight.map((x) => x.trim()).filter((x) => x);
-        if (lefts.length < 2) {
-          setMessage("Soal matching minimal 2 kolom kiri");
-          setIsSaving(false);
-          return;
-        }
-        if (rights.length < lefts.length) {
-          setMessage("Kolom kanan harus sama atau lebih banyak dari kiri");
-          setIsSaving(false);
-          return;
-        }
-        // Buat pairs default: left[i] -> right[i] (bisa diubah ke drag/drop builder jika mau)
-        const pairs = lefts.map((left, i) => ({ left, right: rights[i] || "" }));
-        payload = {
-          id: questionId,
-          bankId,
-          subject: bank?.subject ?? "",
-          prompt,
-          questionType: "matching",
-          maxScore: Number(maxScore),
-          options: lefts,
-          answerKey: { pairs, options: rights, imageUrl },
-        };
-      }
+      const payload =
+        createMode === "essay"
+          ? {
+              id: questionId,
+              bankId,
+              subject: bank?.subject ?? "",
+              prompt,
+              questionType: "essay",
+              correctAnswer: answerKeySlash,
+              maxScore: Number(maxScore),
+              answerKey: {
+                imageUrl,
+              },
+            }
+          : createMode === "multiple-choice-complex"
+            ? {
+                id: questionId,
+                bankId,
+                subject: bank?.subject ?? "",
+                prompt,
+                questionType: "multiple-choice-complex",
+                maxScore: Number(maxScore),
+                options: [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()],
+                answerKey: {
+                  correctAnswers: selectedCorrectOptions,
+                  imageUrl,
+                },
+              }
+            : {
+                id: questionId,
+                bankId,
+                subject: bank?.subject ?? "",
+                prompt,
+                questionType: "true-false",
+                maxScore: Number(maxScore),
+                options: trueFalseRows.filter((item) => item.text.trim().length > 0).map((item) => item.text.trim()),
+                answerKey: {
+                  statements: trueFalseRows
+                    .filter((item) => item.text.trim().length > 0)
+                    .map((item) => ({
+                      text: item.text.trim(),
+                      isTrue: item.answer === "Benar",
+                    })),
+                  imageUrl,
+                },
+              };
 
       const response = await fetch("/api/questions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      const result = (await response.json()) as { data?: BankQuestion; error?: string };
+      const result = (await response.json()) as {
+        data?: BankQuestion;
+        error?: string;
+      };
+
       if (!response.ok) {
         setMessage(result.error ?? "Gagal membuat soal");
         return;
       }
+
       setMessage(
         createMode === "essay"
           ? "Soal essay berhasil dibuat"
           : createMode === "multiple-choice-complex"
             ? "Soal pilihan ganda kompleks berhasil dibuat"
-            : createMode === "true-false"
-              ? "Soal benar/salah berhasil dibuat"
-              : "Soal matching berhasil dibuat"
+            : "Soal benar/salah berhasil dibuat"
       );
       resetForm(createMode);
       await refreshQuestions();
@@ -348,13 +302,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
   const complexOptions = [optionA.trim(), optionB.trim(), optionC.trim(), optionD.trim()].filter(
     (item) => item.length > 0
   );
-
-  // auto-sync allowManualReview with answerKeySlash unless user toggled override
-  useEffect(() => {
-    if (!allowManualReviewTouched) {
-      setAllowManualReview(answerKeySlash.trim().length === 0);
-    }
-  }, [answerKeySlash, allowManualReviewTouched]);
 
   return (
     <main className="min-h-screen px-6 py-8 text-slate-800">
@@ -376,10 +323,35 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
         {!isLoading ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => resetForm("essay")} className={`rounded-lg px-4 py-2 text-sm ${createMode === "essay" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"}`}>Soal Essay</button>
-              <button type="button" onClick={() => resetForm("multiple-choice-complex")} className={`rounded-lg px-4 py-2 text-sm ${createMode === "multiple-choice-complex" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"}`}>Pilihan Ganda Kompleks</button>
-              <button type="button" onClick={() => resetForm("true-false")} className={`rounded-lg px-4 py-2 text-sm ${createMode === "true-false" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"}`}>Benar / Salah</button>
-              <button type="button" onClick={() => resetForm("matching")} className={`rounded-lg px-4 py-2 text-sm ${createMode === "matching" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"}`}>Menjodohkan</button>
+              <button
+                type="button"
+                onClick={() => resetForm("essay")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "essay" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Soal Essay
+              </button>
+              <button
+                type="button"
+                onClick={() => resetForm("multiple-choice-complex")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "multiple-choice-complex"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Pilihan Ganda Kompleks
+              </button>
+              <button
+                type="button"
+                onClick={() => resetForm("true-false")}
+                className={`rounded-lg px-4 py-2 text-sm ${
+                  createMode === "true-false" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Benar / Salah
+              </button>
             </div>
 
             <form onSubmit={handleCreateQuestion} className="grid gap-3">
@@ -408,28 +380,14 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
               />
 
               {createMode === "essay" ? (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Kunci jawaban dipisah '/' contoh: ayam/sapi/kuda"
-                    value={answerKeySlash}
-                    onChange={(event) => setAnswerKeySlash(event.target.value)}
-                    className="rounded-lg border border-slate-300 px-3 py-2"
-                    required
-                  />
-
-                  <label className="mt-2 flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={allowManualReview}
-                      onChange={(e) => { setAllowManualReviewTouched(true); setAllowManualReview(e.target.checked); }}
-                      className="h-4 w-4"
-                    />
-                    <span>Izinkan koreksi manual (allowManualReview)</span>
-                  </label>
-
-                  <p className="text-xs text-slate-500">Kosongkan kunci jawaban untuk mengaktifkan allowManualReview otomatis.</p>
-                </>
+                <input
+                  type="text"
+                  placeholder="Kunci jawaban dipisah '/' contoh: ayam/sapi/kuda"
+                  value={answerKeySlash}
+                  onChange={(event) => setAnswerKeySlash(event.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2"
+                  required
+                />
               ) : createMode === "multiple-choice-complex" ? (
                 <div className="grid gap-2">
                   <p className="text-sm font-medium text-slate-700">4 Opsi Jawaban (wajib 4)</p>
@@ -479,30 +437,6 @@ export default function QuestionBankDetailPage({ params }: PageProps) {
                       </label>
                     ))}
                   </div>
-                </div>
-              ) : createMode === "matching" ? (
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-700">Kolom Kiri (Pertanyaan)</p>
-                    <button type="button" onClick={addMatchingLeft} className="rounded-md border border-slate-300 px-2 py-1 text-xs">Tambah Kiri</button>
-                  </div>
-                  {matchingLeft.map((val, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input type="text" placeholder={`Kiri #${idx + 1}`} value={val} onChange={e => updateMatchingLeft(idx, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" required />
-                      <button type="button" onClick={() => removeMatchingLeft(idx)} className="rounded-lg border border-red-300 px-3 py-2 text-xs text-red-600">Hapus</button>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm font-medium text-slate-700">Kolom Kanan (Jawaban/Distractor)</p>
-                    <button type="button" onClick={addMatchingRight} className="rounded-md border border-slate-300 px-2 py-1 text-xs">Tambah Kanan</button>
-                  </div>
-                  {matchingRight.map((val, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <input type="text" placeholder={`Kanan #${idx + 1}`} value={val} onChange={e => updateMatchingRight(idx, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2" required />
-                      <button type="button" onClick={() => removeMatchingRight(idx)} className="rounded-lg border border-red-300 px-3 py-2 text-xs text-red-600">Hapus</button>
-                    </div>
-                  ))}
-                  <p className="text-xs text-slate-500 mt-1">Kolom kanan harus sama atau lebih banyak dari kiri. Distractor otomatis didukung.</p>
                 </div>
               ) : (
                 <div className="grid gap-2">

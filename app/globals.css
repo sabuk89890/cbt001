@@ -14,8 +14,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Dark theme: maroon-kehitaman (dark maroon / near-black) */
+    --background: #1b0a0a; /* very dark maroon */
+    --foreground: #f3e6e6; /* soft light text with warm tone */
   }
 }
 

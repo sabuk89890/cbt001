@@ -6,14 +6,14 @@ import { useEffect, useState } from "react";
 
 
 export default function AdminSubjectsPage() {
-  const [subjects, setSubjects] = useState([]);
+  const [subjects, setSubjects] = useState<{ id: string; code: string; name: string; created_at: string }[]>([]);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editSubjectId, setEditSubjectId] = useState(null);
+  const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -43,11 +43,7 @@ export default function AdminSubjectsPage() {
     void loadSubjects();
   }, []);
 
-  /**
-   * @param {import('react').FormEvent<HTMLFormElement>} event
-   */
-  async function handleCreate(event) {
-    event.preventDefault();
+  async function handleCreate() {
     setIsSaving(true);
     setMessage("");
 
@@ -77,45 +73,12 @@ export default function AdminSubjectsPage() {
     }
   }
 
-  async function handleDelete(subject) {
-    const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
-    if (!confirmed) {
-      return;
-    }
-
-    setMessage("");
-
-    try {
-      const response = await fetch(`/api/admin/subjects/${subject.id}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        setMessage(result.error ?? "Gagal menghapus mata pelajaran");
-        return;
-      }
-
-      setMessage(result.message ?? "Mata pelajaran berhasil dihapus");
-      await loadSubjects();
-    } catch {
-      setMessage("Terjadi kesalahan saat menghapus mata pelajaran");
-    }
-  }
-
-  function handleStartEdit(subject) {
-    setEditSubjectId(subject.id);
-    setEditCode(subject.code);
-    setEditName(subject.name);
-    setIsEditModalOpen(true);
-  }
-
   /**
-   * @param {import('react').FormEvent<HTMLFormElement>} event
+   * @param {{ id: string; name?: string }} subject
    */
-  async function handleUpdateSubject(event) {
-    event.preventDefault();
 
+
+  async function handleUpdateSubject() {
     if (!editSubjectId) {
       return;
     }
@@ -164,7 +127,7 @@ export default function AdminSubjectsPage() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-lg font-semibold">Tambah Mata Pelajaran</h2>
-          <form onSubmit={handleCreate} className="grid gap-3 md:grid-cols-2">
+          <form onSubmit={(event) => { event.preventDefault(); void handleCreate(); }} className="grid gap-3 md:grid-cols-2">
             <input
               type="text"
               placeholder="Kode (contoh: MTK)"
@@ -220,14 +183,30 @@ export default function AdminSubjectsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(subject)}
+                            onClick={() => { setEditSubjectId(subject.id); setEditCode(subject.code); setEditName(subject.name); setIsEditModalOpen(true); }}
                             className="rounded border border-slate-300 px-3 py-1 text-xs"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
-                            onClick={() => void handleDelete(subject)}
+                            onClick={async () => {
+                              const confirmed = window.confirm(`Hapus mata pelajaran ${subject.name}?`);
+                              if (!confirmed) return;
+                              setMessage("");
+                              try {
+                                const response = await fetch(`/api/admin/subjects/${subject.id}`, { method: "DELETE" });
+                                const result = await response.json();
+                                if (!response.ok) {
+                                  setMessage(result.error ?? "Gagal menghapus mata pelajaran");
+                                  return;
+                                }
+                                setMessage(result.message ?? "Mata pelajaran berhasil dihapus");
+                                await loadSubjects();
+                              } catch {
+                                setMessage("Terjadi kesalahan saat menghapus mata pelajaran");
+                              }
+                            }}
                             className="rounded bg-red-600 px-3 py-1 text-xs text-white"
                           >
                             Hapus
@@ -256,7 +235,7 @@ export default function AdminSubjectsPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateSubject} className="grid gap-3">
+              <form onSubmit={(event) => { event.preventDefault(); void handleUpdateSubject(); }} className="grid gap-3">
                 <input
                   type="text"
                   placeholder="Kode"
