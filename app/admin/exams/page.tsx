@@ -55,6 +55,16 @@ export default function AdminExamsPage() {
     setSessions(json.data ?? []);
   }
 
+  function fmt(dt: string | null | undefined) {
+    if (!dt) return '-';
+    try {
+      const d = new Date(dt);
+      return d.toLocaleString();
+    } catch (e) {
+      return '-';
+    }
+  }
+
   async function createSession() {
     const id = `sess-${Date.now()}`;
     const payload = {
@@ -258,8 +268,23 @@ export default function AdminExamsPage() {
                   <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
                 </div>
                 <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
+                <div className="mt-3 text-sm">
+                  <div>Mulai: {fmt(s.starts_at)}</div>
+                  <div>Selesai: {fmt(s.ends_at)}</div>
+                </div>
                 <div className="mt-4">Soal Dibuat</div>
                 <div className="text-3xl font-bold mt-1">—</div>
+
+                <div className="mt-2 text-xs">
+                  {(() => {
+                    const now = new Date();
+                    const starts = s.starts_at ? new Date(s.starts_at) : null;
+                    const ends = s.ends_at ? new Date(s.ends_at) : null;
+                    if (starts && now < starts) return <span className="text-yellow-700">Belum mulai</span>;
+                    if (ends && now > ends) return <span className="text-red-600">Telah berakhir</span>;
+                    return <span className="text-green-600">Sedang berjalan / Siap</span>;
+                  })()}
+                </div>
 
                 <div className="mt-4 flex gap-2">
                   <button className="px-3 py-1 bg-blue-600 text-white rounded">Buat Soal</button>
