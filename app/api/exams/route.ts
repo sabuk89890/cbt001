@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase.from("exam_sessions").select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("exam_sessions").select("id, title, bank_id, starts_at, duration_minutes, settings, is_active").order("created_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
