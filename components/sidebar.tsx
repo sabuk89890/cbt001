@@ -43,6 +43,7 @@ export default function Sidebar({
               width={collapsed ? 32 : 40}
               height={collapsed ? 32 : 40}
               className="object-contain"
+              unoptimized
             />
             <div className="absolute inset-0 flex items-center justify-center text-slate-700 font-semibold text-sm select-none">CBT</div>
           </div>
