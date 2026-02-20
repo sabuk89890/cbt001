@@ -12,6 +12,11 @@ type SubmissionRow = {
   review_status?: string | null;
   reviewed_by?: string | null;
   created_at?: string | null;
+  // enriched fields returned by API
+  studentName?: string | null;
+  className?: string | null;
+  status?: string | null;
+  duration_seconds?: number | null;
 };
 
 export default function GuruPenilaianPage() {

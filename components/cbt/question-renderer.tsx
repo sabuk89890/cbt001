@@ -117,7 +117,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         e.preventDefault();
       }}
-      onSelectStart={(e) => {
+      onMouseDown={(e) => {
         const t = e.target as HTMLElement | null;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         e.preventDefault();
@@ -192,13 +192,14 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                     if (zoom <= 1) return;
                     const el = e.currentTarget.parentElement as HTMLElement | null;
                     if (!el) return;
+                    const container = el; // narrowed non-null reference for inner closures
                     const startX = e.clientX;
                     const startY = e.clientY;
-                    const startScrollLeft = el.scrollLeft;
-                    const startScrollTop = el.scrollTop;
+                    const startScrollLeft = container.scrollLeft;
+                    const startScrollTop = container.scrollTop;
                     function onMove(ev: MouseEvent) {
-                      el.scrollLeft = startScrollLeft - (ev.clientX - startX);
-                      el.scrollTop = startScrollTop - (ev.clientY - startY);
+                      container.scrollLeft = startScrollLeft - (ev.clientX - startX);
+                      container.scrollTop = startScrollTop - (ev.clientY - startY);
                     }
                     function onUp() {
                       window.removeEventListener("mousemove", onMove);
