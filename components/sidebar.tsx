@@ -17,6 +17,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [logoLoaded, setLogoLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -36,12 +37,20 @@ export default function Sidebar({
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
         <div className="flex items-center gap-3">
           <div onDoubleClick={() => setCollapsed((s) => !s)} className={`relative inline-flex items-center justify-center rounded-md bg-slate-100 overflow-hidden flex-shrink-0 cursor-pointer ${collapsed ? '' : 'mr-2'}`} style={{ width: collapsed ? 32 : 40, height: collapsed ? 32 : 40 }} title="Klik dua kali untuk buka/tutup sidebar">
-            <img src="/file.svg" alt="Logo" className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img
+              src="https://iili.io/fynLLYJ.png"
+              alt="Logo CBT"
+              className={`h-full w-full object-contain ${logoLoaded ? '' : 'opacity-0'}`}
+              onLoad={() => setLogoLoaded(true)}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; setLogoLoaded(false); }}
+            />
             {/* fallback initials when image not available */}
-            <div className="absolute inset-0 flex items-center justify-center text-slate-700 font-semibold text-sm select-none">CBT</div>
+            {!logoLoaded ? (
+              <div className="absolute inset-0 flex items-center justify-center text-slate-700 font-semibold text-sm select-none">CBT</div>
+            ) : null}
           </div>
           <div className={`${collapsed ? 'hidden' : 'min-w-0 overflow-hidden'}`}>
-            <p className="text-lg font-semibold text-slate-800 whitespace-nowrap truncate max-w-[13rem]">{title}</p>
+            <p className="text-base font-semibold text-slate-800 whitespace-nowrap truncate max-w-[11rem]">{title}</p>
             <p className="text-xs text-slate-500 truncate">{subtitle}</p>
           </div>
         </div>
