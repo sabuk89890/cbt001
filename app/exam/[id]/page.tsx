@@ -93,16 +93,22 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
         } catch {}
 
         // check if a participant already exists for this student in session
+        // prefer the most recently created one in case there are leftovers.
         let existingParticipantId: string | null = null;
         try {
           const participants = payload.data?.participants ?? [];
-          const me = participants.find((p: any) => p.student_id === studentId && (p.status === 'in_progress' || p.status === 'not_started'));
-          if (me) existingParticipantId = me.id;
+          const mine = participants
+            .filter((p: any) => p.student_id === studentId && (p.status === 'in_progress' || p.status === 'not_started'))
+            .sort((a: any, b: any) => {
+              const ta = a.created_at ? Date.parse(String(a.created_at)) : 0;
+              const tb = b.created_at ? Date.parse(String(b.created_at)) : 0;
+              return tb - ta;
+            });
+          if (mine.length > 0) existingParticipantId = mine[0].id;
         } catch {}
 
-        // if not exist, start participant now
-        let pid = existingParticipantId;
-        if (!pid) {
+        // helper to start a fresh participant via API
+        async function doStart(): Promise<string | null> {
           const sr = await fetch(`/api/exams/${sid}/participants/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -110,25 +116,40 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           });
           const sres = await sr.json();
           if (!sr.ok) {
-            // silently fail start; user will see the UI without the message
-            setIsLoading(false);
-            return;
+            return null;
           }
-          pid = sres.data?.participantId;
+          return sres.data?.participantId ?? null;
+        }
+
+        let pid = existingParticipantId;
+        if (!pid) {
+          pid = await doStart();
         }
 
         if (!mounted) return;
         setParticipantId(pid ?? null);
 
         // fetch participant-specific ordered questions
-        const qRes = await fetch(`/api/exams/${sid}/participants/${pid}/questions`);
-        const qPayload = await qRes.json();
-        if (!qRes.ok) {
-          setIsLoading(false);
-          return;
+        let qs: ExamQuestion[] = [];
+        if (pid) {
+          const qRes = await fetch(`/api/exams/${sid}/participants/${pid}/questions`);
+          const qPayload = await qRes.json();
+          if (qRes.ok) {
+            qs = qPayload.data ?? [];
+          }
         }
 
-        const qs = qPayload.data ?? [];
+        // if we got no questions but we used an existing participant, try creating a fresh one
+        if (pid && qs.length === 0 && existingParticipantId && pid === existingParticipantId) {
+          const newPid = await doStart();
+          if (newPid && mounted) {
+            setParticipantId(newPid);
+            const qRes2 = await fetch(`/api/exams/${sid}/participants/${newPid}/questions`);
+            const qPayload2 = await qRes2.json();
+            qs = (qPayload2.data ?? []) as ExamQuestion[];
+          }
+        }
+
         setQuestions(qs);
 
         // restore saved answers (server -> localStorage merge fallback)
@@ -427,9 +448,6 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
       {!isLoading && questions.length === 0 ? (
         <div className="mt-6 rounded-md bg-amber-50 border border-amber-200 p-6 text-amber-800">
           <p>Tidak ada soal tersedia untuk sesi ini. Hubungi pengajar atau coba lagi nanti.</p>
-          <p className="mt-2 text-sm">
-            Jika Anda seorang pengajar, periksa pengaturan sesi di <a href="/admin/exams" className="underline font-medium">halaman manajemen ujian</a> dan pastikan bank soal berisi pertanyaan.
-          </p>
         </div>
       ) : null}
 

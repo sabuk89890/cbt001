@@ -23,17 +23,61 @@ export async function POST(request: Request, context: RouteContext) {
     const supabase = createSupabaseAdminClient();
 
     // load session
-    const { data: session, error: sessErr } = await supabase
-      .from("exam_sessions")
-      .select("id, bank_id, settings, starts_at, duration_minutes")
-      .eq("id", sessionId)
-      .single();
+    // fetch session metadata; some databases (older backups) may not yet have the
+    // `ends_at` column. We try the full select first and fall back to a safer variant
+    // if the query fails with a column-not-found error.
+    let session: any | null = null;
+    try {
+      const { data, error } = await supabase
+        .from("exam_sessions")
+        .select("id, bank_id, settings, starts_at, duration_minutes, ends_at")
+        .eq("id", sessionId)
+        .single();
+      if (error) throw error;
+      session = data;
+    } catch (err) {
+      // retry without ends_at column
+      const { data, error } = await supabase
+        .from("exam_sessions")
+        .select("id, bank_id, settings, starts_at, duration_minutes")
+        .eq("id", sessionId)
+        .single();
+      if (error || !data) {
+        return NextResponse.json({ error: (error?.message ?? (err instanceof Error ? err.message : String(err))) || "Session not found" }, { status: 404 });
+      }
+      session = data;
+    }
 
-    if (sessErr || !session) {
-      return NextResponse.json({ error: sessErr?.message ?? "Session not found" }, { status: 404 });
+    if (!session) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     const numQuestions = (session.settings && session.settings.numQuestions) || 0;
+
+    // check for an existing participant for this student. if one exists but has no
+    // questions assigned, drop it so we can create a fresh record. this handles the
+    // case where a participant was created but inserting session_questions failed.
+    if (studentId) {
+      const { data: existing } = await supabase
+        .from("exam_participants")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("student_id", studentId)
+        .limit(1)
+        .single();
+      if (existing && existing.id) {
+        const { count } = await supabase
+          .from("session_questions")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", existing.id);
+        if (count === 0) {
+          await supabase.from("exam_participants").delete().eq("id", existing.id);
+        } else {
+          // reuse existing participant with questions
+          return NextResponse.json({ data: { participantId: existing.id } }, { status: 200 });
+        }
+      }
+    }
 
     // enforce start/end times (support older DBs which may store endsAt inside settings)
     const now = new Date();

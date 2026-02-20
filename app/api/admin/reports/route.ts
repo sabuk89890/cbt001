@@ -77,6 +77,9 @@ export async function GET(request: Request) {
         };
       });
 
+      // after resetting, some submissions may have been left with no timing info
+      // (duration_seconds null) — those should not appear in the report
+      rows = rows.filter((x:any)=>x.duration_seconds !== null && x.duration_seconds !== undefined);
       if (kelas) rows = rows.filter((x:any)=>x.class_name === kelas);
 
       if (format === 'csv') {

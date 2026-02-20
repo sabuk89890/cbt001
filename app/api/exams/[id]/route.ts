@@ -22,7 +22,8 @@ export async function GET(_request: Request, context: RouteContext) {
       .from("exam_participants")
       .select("id, student_id, started_at, finished_at, status, score, updated_at, created_at")
       .eq("session_id", id)
-      .order("created_at", { ascending: true });
+      // return newest participants first so clients can pick the most recent one
+      .order("created_at", { ascending: false });
 
     if (partErr) {
       return NextResponse.json({ error: partErr.message }, { status: 500 });
