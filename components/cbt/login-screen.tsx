@@ -30,7 +30,13 @@ export function LoginScreen() {
         message?: string;
         error?: string;
         user?: {
+          id?: string;
           role?: string;
+          username?: string;
+        };
+        session?: {
+          accessToken?: string | null;
+          refreshToken?: string | null;
         };
       };
 
@@ -41,10 +47,21 @@ export function LoginScreen() {
 
       setMessage(result.message ?? "Login berhasil");
 
+      try {
+        const authObj = {
+          id: result.user?.id,
+          role: result.user?.role,
+          username: result.user?.username,
+          accessToken: result.session?.accessToken ?? null,
+          refreshToken: result.session?.refreshToken ?? null,
+        };
+        localStorage.setItem("auth:user", JSON.stringify(authObj));
+      } catch {}
+
       const userRole = result.user?.role;
-      if (userRole === "admin") {
-        window.location.assign("/admin");
-      }
+      if (userRole === "admin") window.location.assign("/admin");
+      if (userRole === "guru") window.location.assign("/guru");
+      if (userRole === "student") window.location.assign("/student");
     } catch {
       setMessage("Terjadi kesalahan saat menghubungi server");
     } finally {

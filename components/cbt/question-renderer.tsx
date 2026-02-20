@@ -87,21 +87,132 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       ? String((question.answerKey as { imageUrl: string }).imageUrl)
       : "";
 
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  // allow closing enlarged image with Escape and reset zoom when closed
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsZoomed(false);
+    }
+    if (isZoomed) window.addEventListener("keydown", onKey);
+    if (!isZoomed) setZoom(1);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isZoomed]);
+
   return (
-    <fieldset className="space-y-2 rounded-lg border p-4">
+    <fieldset
+      className="space-y-2 rounded-lg border p-4 select-none"
+      onCopy={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+      }}
+      onCut={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+      }}
+      onContextMenu={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+      }}
+      onSelectStart={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+      }}
+      onKeyDown={(e) => {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'a')) {
+          e.preventDefault();
+        }
+      }}
+    >
       <legend className="font-medium">
         {index + 1}. {question.prompt}
       </legend>
       {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={`Gambar soal ${question.id}`}
-          className="max-h-64 w-full rounded-md border object-contain"
-        />
+        <>
+          <img
+            src={imageUrl}
+            alt={`Gambar soal ${question.id}`}
+            className="max-h-64 w-full rounded-md border object-contain cursor-zoom-in"
+            onClick={() => setIsZoomed(true)}
+          />
+
+          {isZoomed ? (
+            <div
+              role="dialog"
+              aria-label={`Gambar soal ${question.id} (zoom)`}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+              onClick={() => setIsZoomed(false)}
+            >
+              <div
+                className="relative max-w-[95%] max-h-[95%] overflow-auto"
+                onClick={(e) => e.stopPropagation()}
+                style={{ touchAction: "pan-y" }}
+              >
+                <div className="absolute right-2 top-2 z-50 flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Zoom out"
+                    onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
+                    className="rounded bg-white/90 px-2 py-1 text-sm shadow"
+                  >
+                    −
+                  </button>
+                  <div className="rounded bg-white/90 px-3 py-1 text-sm text-slate-700 shadow">x{zoom.toFixed(2)}</div>
+                  <button
+                    type="button"
+                    aria-label="Zoom in"
+                    onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
+                    className="rounded bg-white/90 px-2 py-1 text-sm shadow"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Reset zoom"
+                    onClick={() => setZoom(1)}
+                    className="rounded bg-white/90 px-2 py-1 text-sm shadow"
+                  >
+                    ⟳
+                  </button>
+                </div>
+
+                <img
+                  src={imageUrl}
+                  alt={`Gambar soal ${question.id}`}
+                  style={{ width: `${zoom * 100}%`, height: "auto" }}
+                  className={`rounded-md shadow-2xl ${zoom > 1 ? "cursor-grab" : "cursor-zoom-out"}`}
+                  onDoubleClick={() => setZoom((z) => (z >= 2 ? 1 : 2))}
+                  onMouseDown={(e) => {
+                    if (zoom <= 1) return;
+                    const el = e.currentTarget.parentElement as HTMLElement | null;
+                    if (!el) return;
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startScrollLeft = el.scrollLeft;
+                    const startScrollTop = el.scrollTop;
+                    function onMove(ev: MouseEvent) {
+                      el.scrollLeft = startScrollLeft - (ev.clientX - startX);
+                      el.scrollTop = startScrollTop - (ev.clientY - startY);
+                    }
+                    function onUp() {
+                      window.removeEventListener("mousemove", onMove);
+                      window.removeEventListener("mouseup", onUp);
+                    }
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup", onUp);
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
-      <p className="text-xs opacity-70">
-        {question.questionType} • max {question.maxScore}
-      </p>
 
       {question.questionType === "multiple-choice" ? (
         <div className="space-y-1">
@@ -152,7 +263,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
         <textarea
           value={typeof value === "string" ? value : ""}
           onChange={(event) => onChange?.(event.target.value)}
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          className="w-full rounded-md border px-3 py-2 text-sm select-text"
           rows={4}
           placeholder="Tulis jawaban essay"
           readOnly={readOnly}

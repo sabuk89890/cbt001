@@ -8,7 +8,7 @@ type ReviewPageProps = {
   params: Promise<{ sessionId: string; submissionId: string }>;
 };
 
-export default function ReviewSubmissionPage({ params }: ReviewPageProps) {
+export default function GuruReviewSubmissionPage({ params }: ReviewPageProps) {
   const [sessionId, setSessionId] = useState("");
   const [submissionId, setSubmissionId] = useState("");
 
@@ -98,7 +98,7 @@ export default function ReviewSubmissionPage({ params }: ReviewPageProps) {
           } catch {}
           return "";
         })(),
-        reviewNote: "Reviewed from admin review page",
+        reviewNote: "Reviewed from guru review page",
         essayScores: Object.entries(essayScores).map(([questionId, value]) => ({
           questionId,
           manualScore: Number(value.score),
@@ -135,17 +135,12 @@ export default function ReviewSubmissionPage({ params }: ReviewPageProps) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Review Submission Guru</h1>
-        <p className="text-sm opacity-80">
-          Tampilan soal sama dengan halaman ujian siswa, ditambah panel koreksi manual essay.
-        </p>
-        <p className="text-xs opacity-70">
-          Session: {sessionId || "..."} • Submission: {submissionId || "..."}
-        </p>
+        <h1 className="text-2xl font-semibold">Review Submission</h1>
+        <p className="text-sm opacity-80">Tampilan soal sama dengan halaman ujian siswa, ditambah panel koreksi manual essay.</p>
+        <p className="text-xs opacity-70">Session: {sessionId || "..."} • Submission: {submissionId || "..."}</p>
       </header>
 
       {message ? <p className="text-sm">{message}</p> : null}
-
       {isLoading ? <p className="text-sm">Memuat data review...</p> : null}
 
       {!isLoading && submission ? (
@@ -155,18 +150,11 @@ export default function ReviewSubmissionPage({ params }: ReviewPageProps) {
 
             return (
               <section key={question.id} className="space-y-2">
-                <QuestionRenderer
-                  index={index}
-                  question={question}
-                  value={submission.answers[question.id]}
-                  readOnly
-                />
+                <QuestionRenderer index={index} question={question} value={submission.answers[question.id]} readOnly />
 
                 {detail ? (
                   <div className="rounded-md border p-3 text-sm">
-                    <p>
-                      Auto score: {detail.autoScore}/{detail.maxScore} • Final: {detail.finalScore}/{detail.maxScore}
-                    </p>
+                    <p>Auto score: {detail.autoScore}/{detail.maxScore} • Final: {detail.finalScore}/{detail.maxScore}</p>
                     {detail.notes ? <p className="opacity-80">Catatan: {detail.notes}</p> : null}
                   </div>
                 ) : null}

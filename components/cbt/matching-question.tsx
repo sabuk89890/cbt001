@@ -8,12 +8,14 @@ export default function MatchingQuestion({
   onChange,
   readOnly = false,
   extraRightOptions = [],
+  allowAddRightOptions = false,
 }: {
   answerKeyPairs: Pair[];
   valuePairs: Pair[];
   onChange?: (next: Pair[]) => void;
   readOnly?: boolean;
   extraRightOptions?: string[];
+  allowAddRightOptions?: boolean;
 }) {
   const leftItems = Array.from(new Set(answerKeyPairs.map((p) => p.left)));
   const initialRight = Array.from(
@@ -29,6 +31,9 @@ export default function MatchingQuestion({
 
   const [pairs, setPairs] = useState<Pair[]>(valuePairs ?? []);
   useEffect(() => setPairs(valuePairs ?? []), [valuePairs]);
+
+  // currently-selected left item (user clicked but not yet paired)
+  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
 
   const leftRefs = useRef<Array<HTMLDivElement | null>>([]);
   const rightRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -105,16 +110,23 @@ export default function MatchingQuestion({
             {leftItems.map((left, i) => {
               const paired = pairs.find((p) => p.left === left);
               const color = paired ? colors[pairs.findIndex((x) => x.left === left) % colors.length] : undefined;
+              const isSelected = selectedLeft === left;
               return (
                 <div
                   key={left}
                   ref={(el) => { leftRefs.current[i] = el }}
                   onClick={() => {
                     if (paired) {
+                      // clicking a paired left will remove the pair
                       removePairForLeft(left);
+                      setSelectedLeft(null);
+                      return;
                     }
+
+                    // toggle selection for matching
+                    setSelectedLeft((prev) => (prev === left ? null : left));
                   }}
-                  className={`rounded-md border px-3 py-2 text-sm cursor-pointer ${paired ? "shadow-inner" : ""}`}
+                  className={`rounded-md border px-3 py-2 text-sm cursor-pointer transition-all ${paired ? "shadow-inner" : "hover:shadow"} ${isSelected ? 'ring-2 ring-offset-1 ring-sky-400 bg-sky-50' : ''}`}
                   style={paired ? { background: color, color: "white" } : {}}
                 >
                   {left}
@@ -127,7 +139,7 @@ export default function MatchingQuestion({
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="font-medium">Right</div>
-            {!readOnly && (
+            {!readOnly && allowAddRightOptions ? (
               <div className="flex items-center gap-2">
                 <input
                   className="border rounded px-2 py-1 text-sm"
@@ -146,9 +158,8 @@ export default function MatchingQuestion({
                   +
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
-
           <div className="space-y-3">
             {rightItems.map((right, i) => {
               const paired = pairs.find((p) => p.right === right);
@@ -158,12 +169,19 @@ export default function MatchingQuestion({
                   <div
                     ref={(el) => { rightRefs.current[i] = el }}
                     onClick={() => {
-                      // when clicking right, pair with first unpaired left if any
                       if (readOnly) return;
+                      // if a left is currently selected, pair that left with this right
+                      if (selectedLeft) {
+                        pairLeftToRight(selectedLeft, right);
+                        setSelectedLeft(null);
+                        return;
+                      }
+
+                      // otherwise, pair with first unpaired left as before
                       const unpairedLeft = leftItems.find((l) => !pairs.find((p) => p.left === l));
                       if (unpairedLeft) pairLeftToRight(unpairedLeft, right);
                     }}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${paired ? "shadow-inner" : ""}`}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${paired ? "shadow-inner" : "hover:shadow"}`}
                     style={paired ? { background: color, color: "white" } : {}}
                   >
                     {right}

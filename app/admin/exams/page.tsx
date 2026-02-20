@@ -17,14 +17,24 @@ export default function AdminExamsPage() {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(60);
   const [numQuestions, setNumQuestions] = useState(10);
+  const [lockFinishMinutes, setLockFinishMinutes] = useState<number>(0);
   const [banks, setBanks] = useState<any[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [bankTeacherName, setBankTeacherName] = useState<string | null>(null);
+  const [availableQuestions, setAvailableQuestions] = useState<number | null>(null);
   const [startsAt, setStartsAt] = useState<string | null>(null);
   const [endsAt, setEndsAt] = useState<string | null>(null);
+  const [startsDate, setStartsDate] = useState<string | null>(null);
+  const [startsTime, setStartsTime] = useState<string | null>(null);
+  const [endsDate, setEndsDate] = useState<string | null>(null);
+  const [endsTime, setEndsTime] = useState<string | null>(null);
   const [shuffleQuestions, setShuffleQuestions] = useState(true);
   const [shuffleAnswers, setShuffleAnswers] = useState(true);
   const [showScoreAfter, setShowScoreAfter] = useState(true);
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+  const [classChoice, setClassChoice] = useState<string>('');
+  const [classesLockedFromBank, setClassesLockedFromBank] = useState<boolean>(false);
   const [message, setMessage] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -36,6 +46,7 @@ export default function AdminExamsPage() {
   useEffect(() => {
     void fetchSessions();
     void fetchBanks();
+    void fetchClasses();
   }, []);
 
   async function fetchBanks() {
@@ -49,46 +60,74 @@ export default function AdminExamsPage() {
     }
   }
 
+  async function fetchClasses() {
+    try {
+      const res = await fetch('/api/admin/users?role=student');
+      const j = await res.json();
+      if (!res.ok) return;
+      const items = j.data ?? [];
+      const unique = Array.from(new Set(items.map((i: any) => i.class_name).filter((v: any) => !!v).map((v: any) => String(v)))) as string[];
+      setClasses(unique);
+    } catch (e) {
+      // ignore
+    }
+  }
+
   async function fetchSessions() {
     const res = await fetch('/api/exams');
     const json = await res.json();
     setSessions(json.data ?? []);
   }
 
-  function fmt(dt: string | null | undefined) {
-    if (!dt) return '-';
-    try {
-      const d = new Date(dt);
-      return d.toLocaleString();
-    } catch (e) {
-      return '-';
-    }
-  }
-
   async function createSession() {
     const id = `sess-${Date.now()}`;
+    function combine(date: string | null, time: string | null) {
+      if (!date) return null;
+      if (!time) return null;
+      // combine to local ISO
+      try {
+        const dt = new Date(`${date}T${time}`);
+        return dt.toISOString();
+      } catch (e) {
+        return null;
+      }
+    }
+
     const payload = {
-      id,
       title,
       bankId: selectedBank,
-      startsAt: startsAt ?? null,
-      endsAt: endsAt ?? null,
+      startsAt: combine(startsDate, startsTime),
+      endsAt: combine(endsDate, endsTime),
       durationMinutes: Number(duration),
-      settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter }
+      settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter, lockFinishMinutes: Number(lockFinishMinutes) },
+      targetClasses: selectedClasses ?? []
     };
 
-    const res = await fetch('/api/exams', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+    let res: Response;
+    if (editingId) {
+      res = await fetch(`/api/exams/${editingId}`, { method: 'PATCH', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+    } else {
+      // create new
+      const idPayload = { ...payload, id: id };
+      res = await fetch('/api/exams', { method: 'POST', body: JSON.stringify(idPayload), headers: { 'Content-Type': 'application/json' } });
+    }
+
     const json = await res.json();
     if (!res.ok) {
-      setMessage(json.error ?? 'Gagal membuat sesi');
+      setMessage(json.error ?? (editingId ? 'Gagal update sesi' : 'Gagal membuat sesi'));
       return;
     }
-    setMessage('Sesi dibuat');
+    setMessage(editingId ? 'Sesi diperbarui' : 'Sesi dibuat');
+    // reset form
     setTitle('');
     setSelectedBank(null);
     setBankTeacherName(null);
     setStartsAt(null);
     setEndsAt(null);
+    setLockFinishMinutes(0);
+    setSelectedClasses([]);
+    setEditingId(null);
+    setShowCreate(false);
     await fetchSessions();
   }
 
@@ -101,16 +140,86 @@ export default function AdminExamsPage() {
   }
 
   async function handleEdit(session: any) {
-    const newTitle = prompt('Judul sesi', session.title ?? '');
-    if (newTitle === null) return;
-    const newDuration = prompt('Durasi (menit, kosongkan untuk tanpa durasi)', session.duration_minutes ?? '');
-    const body: any = { title: newTitle };
-    if (newDuration === '') body.durationMinutes = null; else if (newDuration != null) body.durationMinutes = Number(newDuration);
+    // open create panel and populate fields for editing
+    setEditingId(session.id);
+    setShowCreate(true);
+    setTitle(session.title ?? '');
+    setSelectedBank(session.bank_id ?? null);
+    setBankTeacherName(null);
+    // try to populate bank info (available questions + teacher) from loaded banks
+    try {
+      let bankObj = banks.find(b => b.id === session.bank_id) as any | undefined;
+      if (!bankObj) {
+        // attempt to refresh banks once
+        await fetchBanks();
+        bankObj = banks.find(b => b.id === session.bank_id) as any | undefined;
+      }
+      if (bankObj) {
+        setBankTeacherName(bankObj.ownerTeacherName ?? null);
+        if (typeof bankObj.questionCount === 'number') {
+          setAvailableQuestions(bankObj.questionCount);
+          // if number of questions not explicitly set in session, default to bank count
+          const s = session.settings ?? {};
+          if (!s.numQuestions) setNumQuestions(bankObj.questionCount);
+        }
+        // if bank defines targetClasses and session has none, prefill from bank
+        const s = session.settings ?? {};
+        if (Array.isArray(bankObj.targetClasses) && bankObj.targetClasses.length > 0) {
+          // always prefer bank-defined classes (user requested behavior)
+          setSelectedClasses(bankObj.targetClasses.map((x: any) => String(x)));
+          setClassesLockedFromBank(true);
+        } else if ((!session.target_classes || session.target_classes.length === 0) && Array.isArray(s.targetClasses) && s.targetClasses.length > 0) {
+          setSelectedClasses(s.targetClasses.map((x: any) => String(x)));
+          setClassesLockedFromBank(true);
+        } else if (session.target_classes && Array.isArray(session.target_classes) && session.target_classes.length > 0) {
+          setSelectedClasses(session.target_classes.map((x: any) => String(x)));
+          setClassesLockedFromBank(false);
+        } else {
+          setSelectedClasses([]);
+          setClassesLockedFromBank(false);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    // settings from session
+    const s = session.settings ?? {};
+    setNumQuestions(s.numQuestions ?? numQuestions);
+    setShuffleQuestions(Boolean(s.shuffleQuestions ?? shuffleQuestions));
+    setShuffleAnswers(Boolean(s.shuffleAnswers ?? shuffleAnswers));
+    setShowScoreAfter(Boolean(s.showScoreAfter ?? showScoreAfter));
+    setLockFinishMinutes(Number(s.lockFinishMinutes ?? lockFinishMinutes));
+    // target classes fallback
+    if (session.target_classes && Array.isArray(session.target_classes)) {
+      setSelectedClasses(session.target_classes.map((x: any) => String(x)));
+    } else if (s.targetClasses && Array.isArray(s.targetClasses)) {
+      setSelectedClasses(s.targetClasses.map((x: any) => String(x)));
+    } else {
+      setSelectedClasses([]);
+    }
+    // starts/ends: prefer columns, fallback to settings
+    if (session.starts_at) {
+      const dt = new Date(session.starts_at);
+      setStartsDate(dt.toISOString().slice(0,10));
+      setStartsTime(dt.toISOString().slice(11,16));
+    } else if (s.startsAt) {
+      const dt = new Date(s.startsAt);
+      setStartsDate(dt.toISOString().slice(0,10));
+      setStartsTime(dt.toISOString().slice(11,16));
+    } else { setStartsDate(null); setStartsTime(null); }
 
-    const res = await fetch(`/api/exams/${session.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const j = await res.json();
-    if (!res.ok) { alert(j.error ?? 'Gagal update'); return; }
-    await fetchSessions();
+    if (session.ends_at) {
+      const dt = new Date(session.ends_at);
+      setEndsDate(dt.toISOString().slice(0,10));
+      setEndsTime(dt.toISOString().slice(11,16));
+    } else if (s.endsAt) {
+      const dt = new Date(s.endsAt);
+      setEndsDate(dt.toISOString().slice(0,10));
+      setEndsTime(dt.toISOString().slice(11,16));
+    } else { setEndsDate(null); setEndsTime(null); }
+
+    // duration
+    setDuration(session.duration_minutes ?? duration);
   }
 
   async function selectSession(id: string) {
@@ -203,15 +312,23 @@ export default function AdminExamsPage() {
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-semibold mb-4">Jadwal Ujian</h1>
+        <h1 className="text-2xl font-semibold mb-4">Manajemen Ujian</h1>
 
-        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-medium">Jadwal Ujian</h2>
+            <h2 className="text-lg font-medium">Manajemen Ujian</h2>
             <p className="text-sm text-slate-500">Kelola jadwal ujian dan peserta</p>
           </div>
           <div>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={()=>setShowCreate(v=>!v)}>Buat jadwal</button>
+            <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded" onClick={()=>{ if (!showCreate) {
+                // reset create form defaults when opening
+                setTitle(''); setDuration(60); setSelectedBank(null); setBankTeacherName(null);
+                setAvailableQuestions(null); setNumQuestions(10); setLockFinishMinutes(0);
+                setStartsDate(null); setStartsTime(null); setEndsDate(null); setEndsTime(null);
+                setShuffleQuestions(true); setShuffleAnswers(true); setShowScoreAfter(true);
+              }
+              setShowCreate(v=>!v);
+            }}>Buat jadwal</button>
           </div>
         </div>
 
@@ -221,44 +338,134 @@ export default function AdminExamsPage() {
             <div className="grid gap-2 mt-2">
               <input className="rounded border px-2 py-1" placeholder="Judul sesi" value={title} onChange={(e)=>setTitle(e.target.value)} />
               <div className="flex gap-2 items-center">
-                <select className="rounded border px-2 py-1" value={selectedBank ?? ''} onChange={(e)=>{
+                <select className="rounded border px-2 py-1" value={selectedBank ?? ''} onChange={async (e)=>{
                   const v = e.target.value || null; setSelectedBank(v);
                   const b = banks.find(x=>x.id === v);
                   setBankTeacherName(b?.ownerTeacherName ?? null);
-                  if (b && b.questionCount !== undefined) setNumQuestions(b.questionCount);
+                  if (b && typeof b.questionCount === 'number') {
+                    setAvailableQuestions(b.questionCount);
+                    // default tampil sama dengan available
+                    setNumQuestions(b.questionCount);
+                  } else {
+                    setAvailableQuestions(null);
+                  }
+                  // if bank has targetClasses, use them and lock class selection
+                  try {
+                    if (b && Array.isArray(b.targetClasses) && b.targetClasses.length > 0) {
+                      setSelectedClasses(b.targetClasses.map((x:any)=>String(x)));
+                      setClassesLockedFromBank(true);
+                    } else {
+                      setClassesLockedFromBank(false);
+                    }
+                  } catch (err) {
+                    setClassesLockedFromBank(false);
+                  }
                 }}>
                   <option value="">Pilih Bank Soal</option>
                   {banks.map((b) => <option key={b.id} value={b.id}>{b.title} ({b.questionCount} soal)</option>)}
                 </select>
                 <div className="text-sm text-slate-600">Guru: {bankTeacherName ?? '-'}</div>
               </div>
-              <div className="flex gap-2">
-                <input type="number" className="rounded border px-2 py-1" value={duration} onChange={(e)=>setDuration(Number(e.target.value))} />
-                <input type="number" className="rounded border px-2 py-1" value={numQuestions} onChange={(e)=>setNumQuestions(Number(e.target.value))} />
-                <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
+              <div className="mt-2">
+                <label className="text-xs text-slate-600 block mb-1">Kelas Tujuan (boleh pilih lebih dari satu)</label>
+                <div className="flex gap-2">
+                  {/* If the selected bank defines targetClasses, use those as options; otherwise fall back to global classes */}
+                  <select className="w-full rounded border p-2 text-sm" value={classChoice} onChange={(e)=>setClassChoice(e.target.value)} disabled={classesLockedFromBank}>
+                    <option value="">Pilih kelas</option>
+                    {(() => {
+                      const bankObj = banks.find(b => b.id === selectedBank) as any | undefined;
+                      const opts = (bankObj && Array.isArray(bankObj.targetClasses) && bankObj.targetClasses.length > 0)
+                        ? bankObj.targetClasses.map((x: any) => String(x))
+                        : classes;
+                      return opts.filter((c: string) => !selectedClasses.includes(c)).map((c: string) => <option key={c} value={c}>{c}</option>);
+                    })()}
+                  </select>
+                  {!classesLockedFromBank ? (
+                    <button type="button" className="px-3 py-1 bg-blue-600 text-white rounded" onClick={()=>{
+                      if (!classChoice) return;
+                      if (!selectedClasses.includes(classChoice)) setSelectedClasses(prev=>[...prev, classChoice]);
+                      setClassChoice('');
+                    }}>Tambah</button>
+                  ) : (
+                    <div className="px-3 py-1 text-sm text-slate-600">Diambil dari Bank Soal</div>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedClasses.map(c => (
+                    <span key={c} className="flex items-center gap-2 bg-slate-100 px-2 py-1 rounded text-sm">
+                      <span>{c}</span>
+                      {!classesLockedFromBank ? (
+                        <button type="button" className="text-slate-500 hover:text-red-600" onClick={()=>setSelectedClasses(prev=>prev.filter(x=>x!==c))}>×</button>
+                      ) : null}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <label className="flex flex-col text-sm">
-                  Mulai
-                  <input type="datetime-local" className="rounded border px-2 py-1" value={startsAt ?? ''} onChange={(e)=>setStartsAt(e.target.value)} />
-                </label>
-                <label className="flex flex-col text-sm">
-                  Selesai
-                  <input type="datetime-local" className="rounded border px-2 py-1" value={endsAt ?? ''} onChange={(e)=>setEndsAt(e.target.value)} />
-                </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                <div className="text-sm min-w-0">
+                  <label className="text-xs text-slate-600 block mb-1">Durasi (menit)</label>
+                  <input type="number" className="rounded border px-2 h-10 w-full" value={duration} onChange={(e)=>setDuration(Number(e.target.value))} />
+                  <div className="text-xs text-slate-500">Waktu pengerjaan per peserta (menit)</div>
+                </div>
+
+                <div className="text-sm min-w-0">
+                  <label className="text-xs text-slate-600 block mb-1">Soal Tersedia</label>
+                  <input readOnly className="rounded border px-2 h-10 bg-slate-50 text-slate-700 w-full" value={availableQuestions ?? ''} />
+                </div>
+
+                <div className="text-sm min-w-0">
+                  <label className="text-xs text-slate-600 block mb-1">Soal Tampil</label>
+                  <input type="number" className="rounded border px-2 h-10 text-center w-full" value={numQuestions} onChange={(e)=>{
+                    const v = Number(e.target.value) || 0;
+                    if (availableQuestions != null && v > availableQuestions) {
+                      setNumQuestions(availableQuestions);
+                    } else {
+                      setNumQuestions(v);
+                    }
+                  }} />
+                </div>
+
+                <div className="text-sm min-w-0">
+                  <label className="text-xs text-slate-600 block mb-1">Lock Selesai (menit)</label>
+                  <input type="number" className="rounded border px-2 h-10 text-center w-full" value={lockFinishMinutes} onChange={(e)=>setLockFinishMinutes(Number(e.target.value) || 0)} />
+                  <div className="text-xs text-slate-500 mt-1 max-w-xs">Jika lebih dari 0, siswa tidak dapat menekan selesai sampai menit ini berlalu sejak mulai.</div>
+                </div>
+              </div>
+              <div className="flex gap-4 items-center mt-2">
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm">Mulai (Tanggal)</label>
+                  <input type="date" className="rounded border px-2 py-1 w-full" value={startsDate ?? ''} onChange={(e)=>setStartsDate(e.target.value)} />
+                  <label className="block text-sm mt-2">Jam Mulai</label>
+                  <input type="time" className="rounded border px-2 py-1 w-full" value={startsTime ?? ''} onChange={(e)=>setStartsTime(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm">Selesai (Tanggal)</label>
+                  <input type="date" className="rounded border px-2 py-1 w-full" value={endsDate ?? ''} onChange={(e)=>setEndsDate(e.target.value)} />
+                  <label className="block text-sm mt-2">Jam Selesai</label>
+                  <input type="time" className="rounded border px-2 py-1 w-full" value={endsTime ?? ''} onChange={(e)=>setEndsTime(e.target.value)} />
+                </div>
               </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={createSession}>Buat Jadwal</button>
-                <button className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
+                <button type="button" className="px-3 py-1 bg-blue-600 text-white rounded" onClick={createSession}>{editingId ? 'Simpan Perubahan' : 'Buat Jadwal'}</button>
+                <button type="button" className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
+                {editingId ? <button type="button" className="px-3 py-1 bg-white border rounded" onClick={()=>{
+                  // cancel editing
+                  setEditingId(null); setShowCreate(false);
+                  setTitle(''); setSelectedBank(null); setSelectedClasses([]);
+                }}>Batal</button> : null}
               </div>
               {message ? <p className="text-sm text-slate-600">{message}</p> : null}
             </div>
           </section>
         ) : null}
 
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {!showCreate && (
+              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sessions.map((s) => (
             <div key={s.id} className="rounded-lg bg-white shadow p-4 relative">
               <div className="absolute -left-3 top-3 h-full w-2 bg-gradient-to-b from-purple-400 to-violet-600 rounded-l"></div>
@@ -268,33 +475,29 @@ export default function AdminExamsPage() {
                   <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
                 </div>
                 <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
-                <div className="mt-3 text-sm">
-                  <div>Mulai: {fmt(s.starts_at)}</div>
-                  <div>Selesai: {fmt(s.ends_at)}</div>
-                </div>
-                <div className="mt-4">Soal Dibuat</div>
-                <div className="text-3xl font-bold mt-1">—</div>
-
-                <div className="mt-2 text-xs">
+                <div className="mt-4 text-sm text-slate-600">Mulai Ujian</div>
+                <div className="text-base font-medium mt-1">
                   {(() => {
-                    const now = new Date();
-                    const starts = s.starts_at ? new Date(s.starts_at) : null;
-                    const ends = s.ends_at ? new Date(s.ends_at) : null;
-                    if (starts && now < starts) return <span className="text-yellow-700">Belum mulai</span>;
-                    if (ends && now > ends) return <span className="text-red-600">Telah berakhir</span>;
-                    return <span className="text-green-600">Sedang berjalan / Siap</span>;
+                    const raw = s.starts_at ?? (s.settings && s.settings.startsAt) ?? null;
+                    if (!raw) return <span className="text-slate-400">Belum dijadwalkan</span>;
+                    try {
+                      const dt = new Date(raw);
+                      return dt.toLocaleString();
+                    } catch (e) {
+                      return <span className="text-slate-400">Belum dijadwalkan</span>;
+                    }
                   })()}
                 </div>
 
                 <div className="mt-4 flex gap-2">
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded">Buat Soal</button>
                   <button className="px-3 py-1 border rounded" onClick={()=>handleEdit(s)}>Edit</button>
                   <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={()=>handleDelete(s.id)}>Hapus</button>
                 </div>
               </div>
             </div>
           ))}
-        </section>
+              </section>
+            )}
       </div>
     </main>
   );

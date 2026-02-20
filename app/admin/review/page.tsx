@@ -1,21 +1,33 @@
 import Link from "next/link";
+import EssayGradeButton from '@/components/admin/essay-grade-button';
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type AdminReviewPageProps = {
   searchParams: Promise<{
-    status?: "pending" | "reviewed" | "all";
-    mapel?: string;
     kelas?: string;
+    bank?: string;
+    q?: string;
   }>;
 };
 
 type GradingItem = { questionId?: string };
 
 export default async function AdminReviewPage({ searchParams }: AdminReviewPageProps) {
-  const { status = "pending", mapel = "all", kelas = "all" } = await searchParams;
+  const { kelas = "all", bank = "all", q = "" } = await searchParams;
   const supabase = createSupabaseAdminClient();
+
+  // helper: format seconds -> human friendly (s/m/h m)
+  const formatDuration = (secs: number | null | undefined) => {
+    if (secs === null || secs === undefined) return '-';
+    const s = Number(secs || 0);
+    if (s < 60) return `${s}s`;
+    if (s < 3600) return `${Math.floor(s/60)}m`;
+    const h = Math.floor(s/3600);
+    const m = Math.floor((s % 3600)/60);
+    return `${h}h ${m}m`;
+  };
 
   let query = supabase
     .from("exam_submissions")
@@ -23,13 +35,7 @@ export default async function AdminReviewPage({ searchParams }: AdminReviewPageP
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (status === "pending") {
-    query = query.eq("needs_manual_review", true);
-  }
 
-  if (status === "reviewed") {
-    query = query.eq("review_status", "reviewed");
-  }
 
   const { data, error } = await query;
 
@@ -113,70 +119,118 @@ export default async function AdminReviewPage({ searchParams }: AdminReviewPageP
     };
   });
 
-  const kelasOptions = [...new Set(enrichedRows.map((item) => item.className).filter((v) => v && v !== "-"))].sort();
-  const mapelOptions = [...new Set(enrichedRows.flatMap((item) => item.subjects))].sort();
+  // build bank options (show all banks) and map session->bank; also compute per-participant duration
+  const sessionIds = [...new Set(enrichedRows.map((r) => r.session_id).filter(Boolean))];
+  const studentIdsForSubs = [...new Set(enrichedRows.map((r) => r.student_id).filter(Boolean))];
 
-  const filteredRows = enrichedRows.filter((item) => {
-    const classOk = kelas === "all" ? true : item.className === kelas;
-    const mapelOk = mapel === "all" ? true : item.subjects.includes(mapel);
-    return classOk && mapelOk;
+  // map session -> bank (for item lookup)
+  let bankBySession = new Map<string, { id: string; title: string }>();
+
+  if (sessionIds.length > 0) {
+    const { data: sessions } = await supabase
+      .from('exam_sessions')
+      .select('id, bank_id')
+      .in('id', sessionIds as string[]);
+
+    const bankIds = [...new Set((sessions ?? []).map((s: any) => s.bank_id).filter(Boolean))];
+    if (bankIds.length > 0) {
+      const { data: banks } = await supabase.from('question_banks').select('id, title').in('id', bankIds as string[]);
+      const bankMap = new Map((banks ?? []).map((b: any) => [b.id, b.title]));
+      for (const s of sessions ?? []) {
+        bankBySession.set(s.id, { id: s.bank_id, title: bankMap.get(s.bank_id) ?? '-' });
+      }
+    }
+  }
+
+  // fetch ALL banks for filter dropdown (so buttons are always available)
+  const { data: allBanks } = await supabase.from('question_banks').select('id, title');
+  const bankList = (allBanks ?? []).map((b: any) => ({ id: b.id, title: b.title }));
+
+  // fetch profiles/classes for kelas filter (show all known classes)
+  const { data: profileClasses } = await supabase.from('profiles').select('class_name').not('class_name', 'is', null);
+  const kelasOptions = Array.from(new Set((profileClasses ?? []).map((p: any) => p.class_name).filter(Boolean))).sort();
+
+  // fetch participant timing rows so we can compute duration_seconds per submission
+  const participantMap = new Map<string, any>();
+  if (sessionIds.length && studentIdsForSubs.length) {
+    const { data: parts } = await supabase
+      .from('exam_participants')
+      .select('session_id, student_id, started_at, finished_at, created_at')
+      .in('session_id', sessionIds as string[])
+      .in('student_id', studentIdsForSubs as string[]);
+    (parts ?? []).forEach((p: any) => participantMap.set(`${p.session_id}::${p.student_id}`, p));
+  }
+
+  // attach duration_seconds to enriched rows
+  const enrichedWithDuration = (enrichedRows ?? []).map((item) => {
+    const part = participantMap.get(`${item.session_id}::${item.student_id}`) ?? null;
+    let durationSeconds: number | null = null;
+    try {
+      const started = part?.started_at ? Date.parse(String(part.started_at)) : null;
+      const finished = part?.finished_at ? Date.parse(String(part.finished_at)) : Date.parse(String(item.created_at));
+      if (started && finished) durationSeconds = Math.max(0, Math.round((finished - started) / 1000));
+    } catch (e) {
+      durationSeconds = null;
+    }
+    return { ...item, duration_seconds: durationSeconds };
   });
 
-  function buildFilterHref(next: { status?: string; mapel?: string; kelas?: string }) {
+  const filteredRows = enrichedWithDuration.filter((item) => {
+    const classOk = kelas === "all" ? true : item.className === kelas;
+    const bankForItem = bankBySession.get(item.session_id)?.id ?? null;
+    const bankOk = bank === "all" ? true : bankForItem === bank;
+    const qOk = !q ? true : (item.studentName ?? "").toLowerCase().includes(String(q).toLowerCase()) || (item.student_id ?? "").toLowerCase().includes(String(q).toLowerCase());
+    return classOk && bankOk && qOk;
+  });
+
+  function buildFilterHref(next: { kelas?: string; bank?: string; q?: string } = {}) {
     const params = new URLSearchParams({
-      status,
-      mapel,
       kelas,
+      bank,
+      q: String(q ?? ""),
       ...next,
-    });
+    } as Record<string,string>);
     return `/admin/review?${params.toString()}`;
   }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Review Manual Guru</h1>
-        <p className="text-sm opacity-80">
-          Filter review berdasarkan status, mapel, dan kelas.
-        </p>
-      </header>
+            <h1 className="text-2xl font-semibold">Review Manual Guru</h1>
+            <p className="text-sm opacity-80">
+              Filter review berdasarkan kelas dan bank.
+            </p>
+          </header>
 
       <section className="space-y-3 rounded-lg border p-4">
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link href={buildFilterHref({ status: "pending" })} className="rounded-md border px-3 py-1">
-            Pending
-          </Link>
-          <Link href={buildFilterHref({ status: "reviewed" })} className="rounded-md border px-3 py-1">
-            Reviewed
-          </Link>
-          <Link href={buildFilterHref({ status: "all" })} className="rounded-md border px-3 py-1">
-            Semua
-          </Link>
-        </div>
 
-        <div className="flex flex-wrap gap-2 text-sm">
-          <span className="px-1 py-1 opacity-70">Mapel:</span>
-          <Link href={buildFilterHref({ mapel: "all" })} className="rounded-md border px-3 py-1">
-            Semua
-          </Link>
-          {mapelOptions.map((item) => (
-            <Link key={item} href={buildFilterHref({ mapel: item })} className="rounded-md border px-3 py-1">
-              {item}
-            </Link>
-          ))}
-        </div>
 
-        <div className="flex flex-wrap gap-2 text-sm">
-          <span className="px-1 py-1 opacity-70">Kelas:</span>
-          <Link href={buildFilterHref({ kelas: "all" })} className="rounded-md border px-3 py-1">
-            Semua
-          </Link>
-          {kelasOptions.map((item) => (
-            <Link key={item} href={buildFilterHref({ kelas: item })} className="rounded-md border px-3 py-1">
-              {item}
-            </Link>
-          ))}
-        </div>
+          <form method="get" className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="px-1 py-1 opacity-70">Kelas:</span>
+            <select name="kelas" defaultValue={kelas} className="rounded border px-3 py-2 text-sm">
+              <option value="all">Semua</option>
+              {kelasOptions.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <span className="px-1 py-1 opacity-70">Bank:</span>
+            <select name="bank" defaultValue={bank} className="rounded border px-3 py-2 text-sm">
+              <option value="all">Semua</option>
+              {bankList.map((b) => (
+                <option key={b.id} value={b.id}>{b.title}</option>
+              ))}
+            </select>
+          </label>
+
+          <div className="ml-auto flex items-center gap-2">
+            <input name="q" defaultValue={String(q)} placeholder="Cari nama atau id siswa" className="rounded border px-3 py-2 text-sm w-72" />
+            <button type="submit" className="rounded-md border px-3 py-2 text-sm">Cari</button>
+          </div>
+        </form>
       </section>
 
       {error ? <p className="text-sm">Gagal memuat data: {error.message}</p> : null}
@@ -191,18 +245,24 @@ export default async function AdminReviewPage({ searchParams }: AdminReviewPageP
                   Session: {item.session_id} • Student: {item.studentName ?? item.student_id ?? "anon"}
                 </p>
                 <p className="text-xs opacity-70">
-                  Score: {item.score} • Status: {item.status} • Review: {item.review_status} • Kelas: {item.className}
+                  Score: {item.score} • Status: {item.status} • Review: {item.review_status} • Kelas: {item.className} • Durasi: {formatDuration(item.duration_seconds)}
                 </p>
                 <p className="text-xs opacity-70">
                   Mapel: {item.subjects.length > 0 ? item.subjects.join(", ") : "-"}
                 </p>
               </div>
-              <Link
-                href={`/admin/review/${item.session_id}/${item.id}`}
-                className="rounded-md border px-3 py-1 text-sm"
-              >
-                Buka Review
-              </Link>
+              <div className="flex items-center gap-2">
+                {(Array.isArray(item.grading_detail) && item.grading_detail.some((d:any)=>d.questionType === 'essay')) ? (
+                  <EssayGradeButton sessionId={item.session_id} submissionId={item.id} studentName={item.studentName ?? item.student_id} />
+                ) : null}
+
+                <Link
+                  href={`/admin/review/${item.session_id}/${item.id}`}
+                  className="rounded-md border px-3 py-1 text-sm"
+                >
+                  Buka Review
+                </Link>
+              </div>
             </li>
           ))}
           {!error && filteredRows.length === 0 ? (

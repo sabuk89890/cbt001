@@ -64,3 +64,65 @@ body {
   .bg-blue-50 { background-color: #1f0a0a !important; }
   .text-blue-600 { color: #f3e6e6 !important; }
 }
+
+/* Temporary dev overlay workaround: hide Next/Dev overlay backdrop so UI remains clickable.
+   Remove this block after root cause (dev overlay) is fixed. */
+@media all {
+  /* Next dev overlay backdrop (target known dev-overlay selectors only) */
+  [data-nextjs-dialog-backdrop],
+  [data-nextjs-dialog-overlay],
+  .nextjs-overlay-backdrop,
+  [data-testid="nextjs-overlay"],
+  .react-dev-overlay,
+  [data-nextjs-overlay] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Keep application modals (e.g. Tailwind classes `fixed inset-0 z-50`) visible */
+
+  /* Internal backdrop/inert markers used by popup libs */
+  [data-base-ui-inert], [data-with-open-in-editor-link] {
+    display: none !important;
+    pointer-events: auto !important;
+  }
+
+  /* Ensure pointer-events allowed globally (temporary) */
+  body {
+    pointer-events: auto !important;
+  }
+}
+
+/* Additional aggressive rules to prevent any overlay from intercepting clicks.
+   These are temporary developer-time overrides. */
+
+/* Broad overlay/backdrop selectors (hide and disable) */
+[data-nextjs-overlay],
+[data-nextjs-dialog-backdrop],
+[data-nextjs-dialog-overlay],
+.nextjs-overlay-backdrop,
+.react-dev-overlay,
+[data-testid="nextjs-overlay"],
+.next-overlay,
+[data-overlay],
+.screenshot-overlay,
+.snipping-tool-overlay {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Do NOT hide generic .fixed.inset-0.z-50 — that matches app modals. */
+
+/* Ensure actionable controls accept pointer events so temporary dev-overlay workarounds don't block them */
+button, a, input[type="button"], input[type="submit"], .btn, .button {
+  pointer-events: auto !important;
+}
+
+/* Remove global z-index overrides — they caused UI controls to render above application modals. */
+
+/* Fallback: force body-level pointer-events and make sure elements respond */
+html, body { pointer-events: auto !important; }
+

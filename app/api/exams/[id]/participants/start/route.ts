@@ -35,13 +35,17 @@ export async function POST(request: Request, context: RouteContext) {
 
     const numQuestions = (session.settings && session.settings.numQuestions) || 0;
 
-    // enforce start/end times
+    // enforce start/end times (support older DBs which may store endsAt inside settings)
     const now = new Date();
     if (session.starts_at) {
       const starts = new Date(session.starts_at);
       if (now < starts) return NextResponse.json({ error: 'Belum waktunya ujian' }, { status: 400 });
     }
-    // Note: ends_at column may not exist in DB yet; server-side enforcement will rely on DB migration.
+    const sessionEnds = session.ends_at ?? (session.settings && session.settings.endsAt) ?? null;
+    if (sessionEnds) {
+      const ends = new Date(sessionEnds);
+      if (now > ends) return NextResponse.json({ error: 'Waktu ujian telah berakhir' }, { status: 400 });
+    }
 
     // fetch candidate questions for bank
     const { data: questions } = await supabase
