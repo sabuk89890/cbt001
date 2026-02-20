@@ -25,7 +25,8 @@ export async function POST(request: Request, context: RouteContext) {
     // load session
     const { data: session, error: sessErr } = await supabase
       .from("exam_sessions")
-      .select("id, bank_id, settings, starts_at, duration_minutes")
+      // include ends_at column so we can enforce a hard cutoff if present
+      .select("id, bank_id, settings, starts_at, ends_at, duration_minutes")
       .eq("id", sessionId)
       .single();
 
