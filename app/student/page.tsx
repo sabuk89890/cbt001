@@ -27,6 +27,7 @@ export default function StudentLobbyPage() {
   const [studentClass, setStudentClass] = useState("");
 
   const [sessions, setSessions] = useState<ExamSession[]>([]);
+  const [banks, setBanks] = useState<any[]>([]);
   const [participantsMap, setParticipantsMap] = useState<Record<string, Participant | null>>({});
   const [submittedSessions, setSubmittedSessions] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -46,10 +47,18 @@ export default function StudentLobbyPage() {
     async function load() {
       setIsLoading(true);
       try {
-        const r = await fetch("/api/exams");
+        const [r, b] = await Promise.all([
+          fetch("/api/exams"),
+          fetch("/api/admin/question-banks"),
+        ]);
         const payload = await r.json();
         const data = payload.data ?? [];
         setSessions(data);
+        // store bank list for lookup
+        if (b.ok) {
+          const bjson = await b.json();
+          setBanks(bjson.data ?? []);
+        }
 
         // load participants for each session in parallel and map by session id
         const parts = await Promise.all(
@@ -166,6 +175,9 @@ export default function StudentLobbyPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {sessions.map((s) => {
+            const bankObj = banks.find((b) => b.id === s.bank_id) as any | undefined;
+            const bankTitle = bankObj?.title ?? '-';
+            const bankCount = typeof bankObj?.questionCount === 'number' ? bankObj.questionCount : 0;
             const participant = participantsMap[s.id] ?? null;
             const startsAt = s.starts_at ? new Date(s.starts_at) : null;
             const duration = s.duration_minutes ?? (s.settings?.durationMinutes ?? null);
@@ -196,7 +208,13 @@ export default function StudentLobbyPage() {
                   {!didAttempt ? (
                     <Link
                       href={`/exam/${s.id}`}
-                      className={`rounded-lg ${isOngoing ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} px-3 py-2 text-xs font-medium`}
+                      className={`rounded-lg px-3 py-2 text-xs font-medium ${bankCount > 0 ? (isOngoing ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700') : 'bg-red-100 text-red-600 cursor-not-allowed'}`}
+                      onClick={(e) => {
+                        if (bankCount <= 0) {
+                          e.preventDefault();
+                          alert('Soal belum tersedia untuk sesi ini. Hubungi pengajar.');
+                        }
+                      }}
                     >
                       Kerjakan
                     </Link>

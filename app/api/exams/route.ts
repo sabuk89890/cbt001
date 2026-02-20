@@ -12,13 +12,18 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdminClient();
     // if bankId provided and settings.numQuestions missing, compute question count
     let resolvedSettings = settings ?? {};
-    if (bankId && (resolvedSettings.numQuestions === undefined || resolvedSettings.numQuestions === null)) {
-      const { data: qdata, error: qerr, count } = await supabase
+    if (bankId) {
+      const { data: qdata, error: qerr } = await supabase
         .from('questions')
         .select('id', { count: 'estimated' })
         .eq('bank_id', bankId);
       const cnt = Array.isArray(qdata) ? qdata.length : 0;
       resolvedSettings.numQuestions = cnt;
+
+      // bank must have at least one question
+      if (cnt === 0) {
+        return NextResponse.json({ error: 'Bank soal tidak memiliki pertanyaan' }, { status: 400 });
+      }
     }
 
     // Attempt insert including starts_at / ends_at. If the DB schema doesn't have those columns

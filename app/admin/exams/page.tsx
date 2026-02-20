@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
@@ -23,6 +23,12 @@ export default function AdminExamsPage() {
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [bankTeacherName, setBankTeacherName] = useState<string | null>(null);
   const [availableQuestions, setAvailableQuestions] = useState<number | null>(null);
+  // disables create/update when bank is missing or has no questions
+  const canSubmit = useMemo(() => {
+    if (!selectedBank) return false;
+    if (availableQuestions !== null && availableQuestions <= 0) return false;
+    return true;
+  }, [selectedBank, availableQuestions]);
   const [startsAt, setStartsAt] = useState<string | null>(null);
   const [endsAt, setEndsAt] = useState<string | null>(null);
   const [startsDate, setStartsDate] = useState<string | null>(null);
@@ -91,6 +97,16 @@ export default function AdminExamsPage() {
       } catch (e) {
         return null;
       }
+    }
+
+    // guard validation before sending
+    if (!selectedBank) {
+      setMessage('Pilih bank soal terlebih dahulu');
+      return;
+    }
+    if (availableQuestions !== null && availableQuestions <= 0) {
+      setMessage('Bank soal kosong, tidak bisa membuat sesi');
+      return;
     }
 
     const payload = {
@@ -435,6 +451,11 @@ export default function AdminExamsPage() {
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shuffleQuestions} onChange={(e)=>setShuffleQuestions(e.target.checked)} /> Acak Soal</label>
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shuffleAnswers} onChange={(e)=>setShuffleAnswers(e.target.checked)} /> Acak Jawaban</label>
               </div>
+              {/* warning if chosen bank has no questions */}
+              {selectedBank && availableQuestions !== null && availableQuestions <= 0 ? (
+                <p className="mt-2 text-sm text-red-600">Bank soal ini tidak memiliki pertanyaan. Pilih bank lain atau tambahkan soal terlebih dahulu.</p>
+              ) : null}
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-sm">Mulai (Tanggal)</label>
@@ -451,53 +472,68 @@ export default function AdminExamsPage() {
               </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
               <div className="flex gap-2">
-                <button type="button" className="px-3 py-1 bg-blue-600 text-white rounded" onClick={createSession}>{editingId ? 'Simpan Perubahan' : 'Buat Jadwal'}</button>
-                <button type="button" className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
-                {editingId ? <button type="button" className="px-3 py-1 bg-white border rounded" onClick={()=>{
-                  // cancel editing
-                  setEditingId(null); setShowCreate(false);
-                  setTitle(''); setSelectedBank(null); setSelectedClasses([]);
-                }}>Batal</button> : null}
+                <button
+                type="button"
+                className={`px-3 py-1 rounded text-white ${canSubmit ? 'bg-blue-600' : 'bg-blue-300 cursor-not-allowed'}`}
+                onClick={createSession}
+                disabled={!canSubmit}
+              >
+                {editingId ? 'Simpan Perubahan' : 'Buat Jadwal'}
+              </button>
+              <button type="button" className="px-3 py-1 bg-slate-100 rounded" onClick={fetchSessions}>Refresh</button>
+              {editingId ? <button type="button" className="px-3 py-1 bg-white border rounded" onClick={()=>{
+                // cancel editing
+                setEditingId(null); setShowCreate(false);
+                setTitle(''); setSelectedBank(null); setSelectedClasses([]);
+              }}>Batal</button> : null}
               </div>
               {message ? <p className="text-sm text-slate-600">{message}</p> : null}
             </div>
           </section>
         ) : null}
 
-            {!showCreate && (
-              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sessions.map((s) => (
-            <div key={s.id} className="rounded-lg bg-white shadow p-4 relative">
-              <div className="absolute -left-3 top-3 h-full w-2 bg-gradient-to-b from-purple-400 to-violet-600 rounded-l"></div>
-              <div className="pl-3">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-semibold">{s.title ?? s.id}</h3>
-                  <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
-                </div>
-                <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
-                <div className="mt-4 text-sm text-slate-600">Mulai Ujian</div>
-                <div className="text-base font-medium mt-1">
-                  {(() => {
-                    const raw = s.starts_at ?? (s.settings && s.settings.startsAt) ?? null;
-                    if (!raw) return <span className="text-slate-400">Belum dijadwalkan</span>;
-                    try {
-                      const dt = new Date(raw);
-                      return dt.toLocaleString();
-                    } catch (e) {
-                      return <span className="text-slate-400">Belum dijadwalkan</span>;
-                    }
-                  })()}
-                </div>
+        {/* show session cards when not creating */}
+        {!showCreate && (
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sessions.map((s) => {
+              const bankObj = banks.find(b => b.id === s.bank_id) as any | undefined;
+              const bankTitle = bankObj?.title ?? '-';
+              const bankCount = typeof bankObj?.questionCount === 'number' ? bankObj.questionCount : 0;
 
-                <div className="mt-4 flex gap-2">
-                  <button className="px-3 py-1 border rounded" onClick={()=>handleEdit(s)}>Edit</button>
-                  <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={()=>handleDelete(s.id)}>Hapus</button>
+              return (
+                <div key={s.id} className="rounded-lg bg-white shadow p-4 relative">
+                  <div className="absolute -left-3 top-3 h-full w-2 bg-gradient-to-b from-purple-400 to-violet-600 rounded-l"></div>
+                  <div className="pl-3">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-lg font-semibold">{s.title ?? s.id}</h3>
+                      <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
+                    </div>
+                    <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
+                    <div className="text-sm text-slate-500">Bank: {bankTitle} ({bankCount} soal)</div>
+                    <div className="mt-4 text-sm text-slate-600">Mulai Ujian</div>
+                    <div className="text-base font-medium mt-1">
+                      {(() => {
+                        const raw = s.starts_at ?? (s.settings && s.settings.startsAt) ?? null;
+                        if (!raw) return <span className="text-slate-400">Belum dijadwalkan</span>;
+                        try {
+                          const dt = new Date(raw);
+                          return dt.toLocaleString();
+                        } catch (e) {
+                          return <span className="text-slate-400">Belum dijadwalkan</span>;
+                        }
+                      })()}
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <button className="px-3 py-1 border rounded" onClick={()=>handleEdit(s)}>Edit</button>
+                      <button className="px-3 py-1 bg-red-600 text-white rounded" onClick={()=>handleDelete(s.id)}>Hapus</button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-              </section>
-            )}
+              );
+            })}
+          </section>
+        )}
       </div>
     </main>
   );

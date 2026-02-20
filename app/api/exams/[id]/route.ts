@@ -85,7 +85,18 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const update: any = {};
     if (body.title !== undefined) update.title = body.title;
-    if (body.bankId !== undefined) update.bank_id = body.bankId;
+    if (body.bankId !== undefined) {
+      // check count before allowing bank change
+      const { data: qdata } = await supabase
+        .from('questions')
+        .select('id', { count: 'estimated' })
+        .eq('bank_id', body.bankId);
+      const cnt = Array.isArray(qdata) ? qdata.length : 0;
+      if (cnt === 0) {
+        return NextResponse.json({ error: 'Bank soal tidak memiliki pertanyaan' }, { status: 400 });
+      }
+      update.bank_id = body.bankId;
+    }
     if (body.startsAt !== undefined) update.starts_at = body.startsAt ? new Date(body.startsAt) : null;
     if (body.durationMinutes !== undefined) update.duration_minutes = body.durationMinutes === null ? null : Number(body.durationMinutes);
     if (body.settings !== undefined) update.settings = body.settings;

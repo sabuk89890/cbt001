@@ -104,9 +104,18 @@ export default function EssayGradeButton({ sessionId, submissionId, studentName 
     ? submission.gradingDetail.some((d: any) => d.questionType === 'essay')
     : false;
 
+  // if we already fetched and there are no essay items, we can disable the button and
+  // provide an explanation tooltip (title attribute) so teacher knows why.
+  const buttonDisabled = !hasEssay && submission !== null && !loading;
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="rounded-full bg-rose-600 text-white px-4 py-2 text-sm shadow-sm hover:bg-rose-700 transition">
+      <button
+        onClick={() => setOpen(true)}
+        disabled={buttonDisabled}
+        title={buttonDisabled ? 'Tidak ada soal essay pada submission ini' : undefined}
+        className={`rounded-full ${buttonDisabled ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-rose-600 text-white'} px-4 py-2 text-sm shadow-sm hover:!bg-rose-700 transition`}
+      >
         Nilai Essay
       </button>
 
@@ -130,39 +139,47 @@ export default function EssayGradeButton({ sessionId, submissionId, studentName 
               {message ? <div className="mb-4 rounded border bg-amber-50 p-3 text-sm text-amber-700">{message}</div> : null}
 
               {!loading && submission ? (
-                <div className="overflow-hidden rounded-md border">
-                  <table className="w-full table-fixed text-sm">
-                    <thead>
-                      <tr className="bg-slate-50 text-left text-xs text-slate-600">
-                        <th className="w-12 px-4 py-3">No.</th>
-                        <th className="px-4 py-3">Soal</th>
-                        <th className="w-80 px-4 py-3">Jawaban</th>
-                        <th className="w-32 px-4 py-3">Nilai</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {submission.gradingDetail?.filter((d:any)=>d.questionType === 'essay').map((detail:any, idx:number) => {
-                        const q = (questions ?? []).find((x:any) => x.id === detail.questionId) ?? null;
-                        const ans = submission.answers ? submission.answers[detail.questionId] : null;
-                        const current = essayScores[detail.questionId] ?? { score: String(detail.manualScore ?? detail.finalScore ?? detail.autoScore ?? 0), notes: detail.notes ?? '' };
-
-                        return (
-                          <tr key={detail.questionId} className="border-t">
-                            <td className="px-4 py-4 text-slate-600">{idx + 1}</td>
-                            <td className="px-4 py-4"><div className="text-sm text-slate-700">{q?.prompt ?? detail.questionId}</div></td>
-                            <td className="px-4 py-4"><div className="max-h-32 overflow-auto rounded bg-slate-50 p-3 text-sm text-slate-700">{typeof ans === 'string' ? ans : JSON.stringify(ans)}</div></td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col gap-2">
-                                <input type="number" min={0} max={detail.maxScore} value={current.score} onChange={(e) => handleChange(detail.questionId, 'score', e.target.value)} className="w-full rounded border px-3 py-2 text-sm" />
-                                <div className="text-xs text-slate-400">max {detail.maxScore}</div>
-                              </div>
-                            </td>
+                (() => {
+                  const essays = submission.gradingDetail?.filter((d:any)=>d.questionType === 'essay') ?? [];
+                  if (essays.length === 0) {
+                    return <div className="text-sm text-slate-500">Tidak ada soal essay untuk submission ini.</div>;
+                  }
+                  return (
+                    <div className="overflow-hidden rounded-md border">
+                      <table className="w-full table-fixed text-sm">
+                        <thead>
+                          <tr className="bg-slate-50 text-left text-xs text-slate-600">
+                            <th className="w-12 px-4 py-3">No.</th>
+                            <th className="px-4 py-3">Soal</th>
+                            <th className="w-80 px-4 py-3">Jawaban</th>
+                            <th className="w-32 px-4 py-3">Nilai</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        </thead>
+                        <tbody>
+                          {essays.map((detail:any, idx:number) => {
+                            const q = (questions ?? []).find((x:any) => x.id === detail.questionId) ?? null;
+                            const ans = submission.answers ? submission.answers[detail.questionId] : null;
+                            const current = essayScores[detail.questionId] ?? { score: String(detail.manualScore ?? detail.finalScore ?? detail.autoScore ?? 0), notes: detail.notes ?? '' };
+
+                            return (
+                              <tr key={detail.questionId} className="border-t">
+                                <td className="px-4 py-4 text-slate-600">{idx + 1}</td>
+                                <td className="px-4 py-4"><div className="text-sm text-slate-700">{q?.prompt ?? detail.questionId}</div></td>
+                                <td className="px-4 py-4"><div className="max-h-32 overflow-auto rounded bg-slate-50 p-3 text-sm text-slate-700">{typeof ans === 'string' ? ans : JSON.stringify(ans)}</div></td>
+                                <td className="px-4 py-4">
+                                  <div className="flex flex-col gap-2">
+                                    <input type="number" min={0} max={detail.maxScore} value={current.score} onChange={(e) => handleChange(detail.questionId, 'score', e.target.value)} className="w-full rounded border px-3 py-2 text-sm" />
+                                    <div className="text-xs text-slate-400">max {detail.maxScore}</div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()
               ) : null}
             </div>
           </div>
