@@ -200,13 +200,15 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                     if (zoom <= 1) return;
                     const el = e.currentTarget.parentElement as HTMLElement | null;
                     if (!el) return;
+                    // capture a non-null reference for the closures below
+                    const container: HTMLElement = el;
                     const startX = e.clientX;
                     const startY = e.clientY;
-                    const startScrollLeft = el.scrollLeft;
-                    const startScrollTop = el.scrollTop;
+                    const startScrollLeft = container.scrollLeft;
+                    const startScrollTop = container.scrollTop;
                     function onMove(ev: MouseEvent) {
-                      el.scrollLeft = startScrollLeft - (ev.clientX - startX);
-                      el.scrollTop = startScrollTop - (ev.clientY - startY);
+                      container.scrollLeft = startScrollLeft - (ev.clientX - startX);
+                      container.scrollTop = startScrollTop - (ev.clientY - startY);
                     }
                     function onUp() {
                       window.removeEventListener("mousemove", onMove);
