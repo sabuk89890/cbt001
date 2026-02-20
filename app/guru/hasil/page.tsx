@@ -21,6 +21,16 @@ export default function GuruHasilPage() {
   const [filterBank, setFilterBank] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // searchable student rekap
+  const [studentQuery, setStudentQuery] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const uniqueStudents = Array.from(new Set((rows ?? []).map((r:any) => (r.studentName ?? r.student_id)).filter(Boolean))).map((v:any) => String(v));
+  const suggestions = studentQuery && !selectedStudent
+    ? uniqueStudents.filter(s => s.toLowerCase().includes(studentQuery.toLowerCase())).slice(0, 10)
+    : (selectedStudent ? [selectedStudent] : uniqueStudents.slice(0, 10));
+
   const load = async () => {
     setLoading(true);
     try {
@@ -50,8 +60,9 @@ export default function GuruHasilPage() {
   const filtered = rows.filter(r => {
     const clsOk = !filterClass || filterClass === 'all' ? true : r.className === filterClass;
     const bankOk = !filterBank || filterBank === 'all' ? true : (r.session_id && typeof r.session_id === 'string' ? (r.session_id && r.session_id in ({} as any) ? true : true) : true); // bank filtering done via bank id on sessions in API; teacher can use bank dropdown provided
+    const studentOk = !selectedStudent ? true : ((r.studentName ?? r.student_id) === selectedStudent);
     // For simplicity, API already returns only teacher banks; filterBank matches bank id in rows via sessions mapping not present here — instead we rely on API's banks list and filter by session lookup not implemented. We'll filter by bank by checking session's bank in the returned rows if available; fallback: show all
-    return clsOk && bankOk;
+    return clsOk && bankOk && studentOk;
   });
 
   const exportCsv = () => {
@@ -72,9 +83,31 @@ export default function GuruHasilPage() {
         <h1 className="text-2xl font-semibold mb-4">Hasil & Laporan (Guru)</h1>
 
         <div className="flex gap-3 mb-4 items-center">
-          <select className="rounded border px-3 py-2 text-sm" value={'students'} disabled>
-            <option value="students">Rekap per Siswa</option>
-          </select>
+          <div className="relative w-64">
+            <input
+              aria-label="Pilih siswa untuk rekap"
+              placeholder="Rekap per Siswa — ketik untuk cari..."
+              value={studentQuery}
+              onChange={(e) => { setStudentQuery(e.target.value); setSelectedStudent(null); }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              className="w-full rounded border px-3 py-2 text-sm"
+            />
+
+            {showSuggestions && suggestions.length > 0 ? (
+              <ul className="absolute left-0 top-full z-30 mt-1 max-h-44 w-full overflow-auto rounded border bg-white shadow-sm">
+                {suggestions.map((s) => (
+                  <li
+                    key={s}
+                    onMouseDown={() => { setSelectedStudent(s); setStudentQuery(s); setShowSuggestions(false); }}
+                    className="cursor-pointer px-3 py-2 text-sm hover:bg-slate-50"
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
 
           <select className="rounded border px-3 py-2 text-sm" value={filterClass || 'all'} onChange={(e)=>setFilterClass(e.target.value)}>
             <option value="all">Semua kelas</option>
