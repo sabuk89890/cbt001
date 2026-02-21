@@ -28,11 +28,14 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
-          echo "VERCEL_PROJECT_ID: $VERCEL_PROJECT_ID"
+          VERCEL_ORG_ID="${VERCEL_ORG_ID:-}"
+          VERCEL_PROJECT_ID="${VERCEL_PROJECT_ID:-}"
+          echo "VERCEL_PROJECT_ID: ${VERCEL_PROJECT_ID:-***}"
           echo "VERCEL_ORG_ID (raw secret): ${VERCEL_ORG_ID:-<not-set>}"
-          ORG_SLUG="${VERCEL_ORG_ID%%/*}"
+          ORG_SLUG="${VERCEL_ORG_ID:-}" 
+          ORG_SLUG="${ORG_SLUG%%/*}"
           if [ -z "$ORG_SLUG" ]; then
-            ORG_SLUG="$VERCEL_ORG_ID"
+            ORG_SLUG=""
           fi
           echo "Derived ORG_SLUG: $ORG_SLUG"
           echo -n "VERCEL_TOKEN length: "
@@ -50,10 +53,15 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          # non-interactive deploy; derive org slug from secret (in case secret contains "/project")
+          set -euo pipefail
+          VERCEL_ORG_ID="${VERCEL_ORG_ID:-}"
+          VERCEL_PROJECT_ID="${VERCEL_PROJECT_ID:-}"
           ORG_SLUG="${VERCEL_ORG_ID%%/*}"
+          ORG_SLUG="${ORG_SLUG:-}"
           if [ -z "$ORG_SLUG" ]; then
-            ORG_SLUG="$VERCEL_ORG_ID"
+            echo "ERROR: VERCEL_ORG_ID is not set in repository secrets."
+            echo "Set secret 'VERCEL_ORG_ID' to the team internal id (example: team_OfcNYbFSK...)."
+            exit 1
           fi
           echo "Deploying to org scope: $ORG_SLUG"
           npx vercel --prod --yes --token "$VERCEL_TOKEN" --scope "$ORG_SLUG"
