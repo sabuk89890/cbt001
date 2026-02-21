@@ -29,15 +29,20 @@ jobs:
         run: |
           set -euo pipefail
           echo "VERCEL_PROJECT_ID: $VERCEL_PROJECT_ID"
-          echo "VERCEL_ORG_ID: (removed from runner to let CLI infer org)"
+          echo "VERCEL_ORG_ID (raw secret): ${VERCEL_ORG_ID:-<not-set>}"
+          ORG_SLUG="${VERCEL_ORG_ID%%/*}"
+          if [ -z "$ORG_SLUG" ]; then
+            ORG_SLUG="$VERCEL_ORG_ID"
+          fi
+          echo "Derived ORG_SLUG: $ORG_SLUG"
           echo -n "VERCEL_TOKEN length: "
           echo -n "$VERCEL_TOKEN" | wc -c
           echo "---- vercel whoami ----"
           npx vercel whoami --token "$VERCEL_TOKEN" || true
           echo "---- vercel projects ls ----"
-          npx vercel projects ls --token "$VERCEL_TOKEN" || true
+          npx vercel projects ls --token "$VERCEL_TOKEN" --scope "$ORG_SLUG" || true
           echo "---- vercel projects inspect ----"
-          npx vercel projects inspect "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN" || true
+          npx vercel projects inspect "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN" --scope "$ORG_SLUG" || true
 
       # deploy with vercel CLI using a token stored in Secrets
       - name: Deploy to Vercel
@@ -45,5 +50,10 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          # non-interactive deploy; pass token explicitly so CLI can infer org
-          npx vercel --prod --yes --token "$VERCEL_TOKEN"
+          # non-interactive deploy; derive org slug from secret (in case secret contains "/project")
+          ORG_SLUG="${VERCEL_ORG_ID%%/*}"
+          if [ -z "$ORG_SLUG" ]; then
+            ORG_SLUG="$VERCEL_ORG_ID"
+          fi
+          echo "Deploying to org scope: $ORG_SLUG"
+          npx vercel --prod --yes --token "$VERCEL_TOKEN" --scope "$ORG_SLUG"
