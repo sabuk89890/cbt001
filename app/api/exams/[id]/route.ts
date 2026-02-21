@@ -82,7 +82,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const body = await request.json();
     const { id } = await context.params;
-
+    const supabase = createSupabaseAdminClient();
     const update: any = {};
     if (body.title !== undefined) update.title = body.title;
     if (body.bankId !== undefined) {
@@ -102,7 +102,6 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (body.settings !== undefined) update.settings = body.settings;
     if (body.isActive !== undefined) update.is_active = body.isActive;
 
-    const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, duration_minutes, settings, is_active').single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
