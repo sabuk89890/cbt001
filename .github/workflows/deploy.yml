@@ -26,12 +26,10 @@ jobs:
       - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          # optionally specify project/organization if autodetection fails
+          # the CLI will read these environment variables to know which project
+          # and organisation to deploy under; avoid passing unknown flags.
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
-          # pass the ids explicitly to avoid the interactive prompt when the CLI
-          # can't infer the project from the git remote or working directory.
-          npx vercel --prod --confirm \
-            ${VERCEL_PROJECT_ID:+--project $VERCEL_PROJECT_ID} \
-            ${VERCEL_ORG_ID:+--scope $VERCEL_ORG_ID}
+          # non-interactive deploy; project/org is determined from the env vars
+          npx vercel --prod --yes
