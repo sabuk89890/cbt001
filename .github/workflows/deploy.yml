@@ -1,0 +1,33 @@
+name: "Auto deploy to Vercel"
+
+on:
+  push:
+    # run on any branch so deployment triggers on every push
+    branches:
+      - '**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # make sure node is available for the vercel CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # deploy with vercel CLI using a token stored in Secrets
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # optionally specify project/organization if not autodetected
+          # VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          npx vercel --prod --confirm
