@@ -33,6 +33,7 @@ export function LoginScreen() {
           id?: string;
           role?: string;
           username?: string;
+          fullName?: string | null;
         };
         session?: {
           accessToken?: string | null;
@@ -52,6 +53,7 @@ export function LoginScreen() {
           id: result.user?.id,
           role: result.user?.role,
           username: result.user?.username,
+          fullName: result.user?.fullName ?? null,
           accessToken: result.session?.accessToken ?? null,
           refreshToken: result.session?.refreshToken ?? null,
         };

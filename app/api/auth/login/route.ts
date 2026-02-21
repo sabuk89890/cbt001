@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     const { data: profileByUsername, error: profileLookupError } = await adminClient
       .from("profiles")
-      .select("id, role")
+      .select("id, role, full_name")
       .eq("username", rawUsername)
       .maybeSingle();
 
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
         id: authData.user.id,
         role: profileByUsername.role,
         username: rawUsername,
+        fullName: profileByUsername.full_name ?? null,
       },
       session: {
         accessToken: authData.session?.access_token,
