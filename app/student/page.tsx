@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type ExamSession = {
   id: string;
   title: string;
+  bank_id?: string | null;
   starts_at?: string | null;
   duration_minutes?: number | null;
   settings?: any;
