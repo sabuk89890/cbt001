@@ -30,32 +30,6 @@ function getSortableName(user: UserRow) {
 }
 
 function parseCsv(text: string) {
-  // simple CSV parser that handles quoted fields and ignores commas inside quotes
-  function splitLine(line: string) {
-    // split on commas that are not inside double quotes
-    const parts = line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/g);
-    return parts.map((item) => {
-      let trimmed = item.trim();
-      // strip surrounding quotes and unescape double quotes
-      if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
-        trimmed = trimmed.slice(1, -1).replace(/\"\"/g, "\"");
-      }
-      return trimmed;
-    });
-  }
-
-  function normalizeHeader(header: string) {
-    const h = header.trim();
-    // convert common variations to the camelCase keys used by the importer
-    if (/^username$/i.test(h)) return "username";
-    if (/^full[_ ]?name$/i.test(h)) return "fullName";
-    if (/^class[_ ]?name$/i.test(h)) return "className";
-    if (/^password$/i.test(h)) return "password";
-    if (/^email$/i.test(h)) return "email";
-    if (/^photo[_ ]?url$/i.test(h)) return "photoUrl";
-    return h;
-  }
-
   const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -65,11 +39,10 @@ function parseCsv(text: string) {
     return [] as Array<Record<string, string>>;
   }
 
-  const rawHeaders = splitLine(lines[0]);
-  const headers = rawHeaders.map(normalizeHeader);
+  const headers = lines[0].split(",").map((item) => item.trim());
 
   return lines.slice(1).map((line) => {
-    const values = splitLine(line);
+    const values = line.split(",").map((item) => item.trim());
     const row: Record<string, string> = {};
 
     headers.forEach((header, index) => {
@@ -85,7 +58,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [importFailures, setImportFailures] = useState<Array<{row:number;message:string}>>([]);
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
@@ -98,7 +70,6 @@ export default function AdminUsersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteClassName, setDeleteClassName] = useState("");
   const [csvFileName, setCsvFileName] = useState("");
-  const [csvText, setCsvText] = useState("");
   const csvInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedClassView, setSelectedClassView] = useState("");
   const [nameFilter, setNameFilter] = useState("");
@@ -466,29 +437,9 @@ export default function AdminUsersPage() {
     }
 
     setCsvFileName(file.name);
-    setCsvText("");
 
     try {
       const text = await file.text();
-      await submitCsvText(text, file.name);
-    } catch {
-      setMessage("Terjadi kesalahan saat memproses file CSV");
-      setImportFailures([]);
-    }
-  }
-
-  async function handleImportText() {
-    if (!csvText.trim()) {
-      setMessage("Silakan tempelkan teks CSV terlebih dahulu");
-      return;
-    }
-
-    await submitCsvText(csvText, "(paste)");
-    setCsvFileName("");
-  }
-
-  async function submitCsvText(text: string, sourceName: string) {
-    try {
       const rows = parseCsv(text).map((row) => ({
         username: row.username,
         fullName: row.fullName,
@@ -509,7 +460,6 @@ export default function AdminUsersPage() {
       const result = (await response.json()) as {
         imported?: number;
         failed?: number;
-        failures?: Array<{ row: number; message: string }>;
         error?: string;
       };
 
@@ -519,12 +469,10 @@ export default function AdminUsersPage() {
       }
 
       setMessage(`Import CSV selesai. Berhasil: ${result.imported ?? 0}, Gagal: ${result.failed ?? 0}`);
-      setImportFailures(result.failures ?? []);
       await loadUsers("student", { preserveMessage: true });
       setActiveRole("student");
     } catch {
       setMessage("Terjadi kesalahan saat memproses file CSV");
-      setImportFailures([]);
     }
   }
 
@@ -634,18 +582,6 @@ export default function AdminUsersPage() {
           </form>
 
           {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
-          {importFailures.length > 0 ? (
-            <div className="mt-2 max-h-40 overflow-y-auto rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700">
-              <p className="font-medium">Detail kegagalan:</p>
-              <ul className="list-inside list-disc">
-                {importFailures.map((f) => (
-                  <li key={f.row}>
-                    Baris {f.row}: {f.message}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
 
           {photoUrl ? (
             <div className="mt-3">
@@ -658,29 +594,9 @@ export default function AdminUsersPage() {
         {canManageStudentBulk ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold">Fitur Murid: CSV & Hapus Massal</h2>
-
-            <div className="mt-3 space-y-4">
-              {/* paste textarea */}
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm text-slate-600">Tempelkan teks CSV di bawah (header wajib baris pertama).</p>
-                <textarea
-                  value={csvText}
-                  onChange={(e) => setCsvText(e.target.value)}
-                  rows={6}
-                  className="w-full rounded-lg border border-slate-300 p-2 text-sm font-mono"
-                  placeholder="username,fullName,className,password,email,photoUrl\nsiswa001,Siswa Satu,IX-A,10105158,siswa001@cbt.local,"
-                />
-                <button
-                  type="button"
-                  onClick={handleImportText}
-                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700"
-                >
-                  Import dari Teks
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600">Atau upload file CSV.</p>
+                <p className="text-sm text-slate-600">Entry murid melalui file CSV.</p>
                 <div className="flex flex-wrap gap-2">
                   <a
                     href="/templates/student-import-template.csv"

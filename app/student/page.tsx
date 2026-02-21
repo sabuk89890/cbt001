@@ -179,11 +179,13 @@ export default function StudentLobbyPage() {
             const bankTitle = bankObj?.title ?? '-';
             const bankCount = typeof bankObj?.questionCount === 'number' ? bankObj.questionCount : 0;
             const participant = participantsMap[s.id] ?? null;
-            const startsAt = s.starts_at ? new Date(s.starts_at) : null;
+            const rawStart = s.starts_at ?? (s.settings && s.settings.startsAt) ?? null;
+            const startsAt = rawStart ? new Date(rawStart) : null;
             const duration = s.duration_minutes ?? (s.settings?.durationMinutes ?? null);
             const endsAt = startsAt && duration ? new Date(startsAt.getTime() + duration * 60000) : null;
 
-            const isOngoing = startsAt ? now >= startsAt && (!endsAt || now <= endsAt) : true;
+            // if we don't know a start time explicitly, consider it not yet started
+            const isOngoing = startsAt ? now >= startsAt && (!endsAt || now <= endsAt) : false;
             const isFinished = endsAt ? now > endsAt : false;
 
             const didAttempt = ((!!participant && participant.status === "finished") || !!submittedSessions[s.id]);
@@ -208,11 +210,20 @@ export default function StudentLobbyPage() {
                   {!didAttempt ? (
                     <Link
                       href={`/exam/${s.id}`}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium ${bankCount > 0 ? (isOngoing ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700') : 'bg-red-100 text-red-600 cursor-not-allowed'}`}
+                      className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                        bankCount <= 0
+                          ? 'bg-red-100 text-red-600 cursor-not-allowed'
+                          : !isOngoing
+                          ? 'bg-slate-200 text-slate-700 cursor-not-allowed'
+                          : 'bg-blue-600 text-white'
+                      }`}
                       onClick={(e) => {
                         if (bankCount <= 0) {
                           e.preventDefault();
                           alert('Soal belum tersedia untuk sesi ini. Hubungi pengajar.');
+                        } else if (!isOngoing) {
+                          e.preventDefault();
+                          alert('Ujian belum dimulai.');
                         }
                       }}
                     >

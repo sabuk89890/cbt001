@@ -314,8 +314,7 @@ export default function AdminExamsPage() {
     const res = await fetch(`/api/exams/${selected}/participants/${participantId}/reset`, { method: 'POST' });
     const json = await res.json();
     if (!res.ok) { alert(json.error ?? 'Gagal reset'); return; }
-    alert('Peserta dihapus dari sesi');
-    await fetchSessions();
+    alert('Direset');
   }
 
   async function handleForceStop(participantId: string) {

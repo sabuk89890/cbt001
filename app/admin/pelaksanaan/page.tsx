@@ -101,10 +101,7 @@ export default function PelaksanaanPage() {
     const res = await fetch(`/api/exams/${selectedSession}/participants/${participantId}/reset`, { method: 'POST' });
     const j = await res.json();
     if (!res.ok) alert(j.error ?? 'Gagal reset');
-    else {
-      alert('Peserta dihapus dari sesi');
-      await fetchSessions();
-    }
+    else alert('Peserta direset');
   }
 
   async function handleForceStop(participantId:string) {
