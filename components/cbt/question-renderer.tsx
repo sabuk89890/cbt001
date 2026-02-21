@@ -202,11 +202,12 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                     if (!el) return;
                     const startX = e.clientX;
                     const startY = e.clientY;
-                    const startScrollLeft = el.scrollLeft;
-                    const startScrollTop = el.scrollTop;
+                    const container = el as HTMLElement;
+                    const startScrollLeft = container.scrollLeft;
+                    const startScrollTop = container.scrollTop;
                     function onMove(ev: MouseEvent) {
-                      el.scrollLeft = startScrollLeft - (ev.clientX - startX);
-                      el.scrollTop = startScrollTop - (ev.clientY - startY);
+                      container.scrollLeft = startScrollLeft - (ev.clientX - startX);
+                      container.scrollTop = startScrollTop - (ev.clientY - startY);
                     }
                     function onUp() {
                       window.removeEventListener("mousemove", onMove);
