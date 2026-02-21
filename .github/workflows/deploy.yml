@@ -22,14 +22,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug Vercel env
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          echo "VERCEL_PROJECT_ID: $VERCEL_PROJECT_ID"
+          echo "VERCEL_ORG_ID: (removed from runner to let CLI infer org)"
+          echo -n "VERCEL_TOKEN length: "
+          echo -n "$VERCEL_TOKEN" | wc -c
+          echo "---- vercel whoami ----"
+          npx vercel whoami --token "$VERCEL_TOKEN" || true
+          echo "---- vercel projects ls ----"
+          npx vercel projects ls --token "$VERCEL_TOKEN" || true
+          echo "---- vercel projects inspect ----"
+          npx vercel projects inspect "$VERCEL_PROJECT_ID" --token "$VERCEL_TOKEN" || true
+
       # deploy with vercel CLI using a token stored in Secrets
       - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          # the CLI will read these environment variables to know which project
-          # and organisation to deploy under; avoid passing unknown flags.
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
-          # non-interactive deploy; project/org is determined from the env vars
-          npx vercel --prod --yes
+          # non-interactive deploy; pass token explicitly so CLI can infer org
+          npx vercel --prod --yes --token "$VERCEL_TOKEN"
