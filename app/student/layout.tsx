@@ -93,9 +93,28 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
             </div>
           </div>
 
-          <div className="text-sm text-slate-500 text-right">
-            <div>@2026 EfKa Studio</div>
-            <div>By Feri Kurniawan, M.Pd.</div>
+          <div className="flex items-center gap-6 text-sm text-slate-500 text-right">
+            <button
+              className="flex items-center gap-1 rounded-lg px-3 py-2 hover:bg-slate-100"
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem('auth:user');
+                  const role = raw ? JSON.parse(raw)?.role : null;
+                  localStorage.removeItem('auth:user');
+                  window.location.assign(role ? `/auth/${role}` : '/auth/student');
+                } catch (e) {
+                  localStorage.removeItem('auth:user');
+                  window.location.assign('/auth/student');
+                }
+              }}
+            >
+              🚪
+              <span className="text-xs">Logout</span>
+            </button>
+            <div>
+              <div>@2026 EfKa Studio</div>
+              <div>By Feri Kurniawan, M.Pd.</div>
+            </div>
           </div>
         </div>
       </header>
