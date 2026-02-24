@@ -88,8 +88,11 @@ Contoh SQL siap pakai ada di [supabase/seed-profiles.sql](supabase/seed-profiles
 ## Format CSV Import Murid
 
 - Download template: [public/templates/student-import-template.csv](public/templates/student-import-template.csv)
-- Header wajib: `username,fullName,className`
+- Header wajib: `username,fullName,className` (tidak sensitif huruf besar/kecil, spasi atau underscore diperbolehkan)
 - Header opsional: `password,email,photoUrl`
+- Parser mendukung nilai berpetik dan koma di dalam nilai.
+- Bisa mengupload file CSV **atau** menempelkan teks langsung ke kotak impor di antarmuka.
+- Jika ada baris gagal, informasi baris dan pesan akan ditampilkan setelah proses import.
 
 ## Manual Regrade Essay
 

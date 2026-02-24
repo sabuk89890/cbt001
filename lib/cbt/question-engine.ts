@@ -184,6 +184,12 @@ export function normalizeQuestionPayload(body: QuestionPayload):
 
   const maxScore = toPositiveInt(body.maxScore, 1);
 
+  // extract optional imageUrl (used by all question types)
+  const imageUrl =
+    typeof (body.answerKey as { imageUrl?: unknown })?.imageUrl === "string"
+      ? String((body.answerKey as { imageUrl: string }).imageUrl).trim()
+      : "";
+
   if (questionType === "multiple-choice") {
     const options = unique(normalizeLines(body.options));
     const correctAnswer =
@@ -211,7 +217,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
         questionType,
         maxScore,
         options,
-        answerKey: { correctAnswer },
+        answerKey: { correctAnswer, imageUrl },
         legacyCorrectAnswer: correctAnswer,
       },
     };
@@ -256,7 +262,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
         questionType,
         maxScore,
         options,
-        answerKey: { correctAnswers },
+        answerKey: { correctAnswers, imageUrl },
         legacyCorrectAnswer: JSON.stringify(correctAnswers),
       },
     };
@@ -278,7 +284,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
           questionType,
           maxScore,
           options: statements.map((item) => item.text),
-          answerKey: { statements },
+          answerKey: { statements, imageUrl },
           legacyCorrectAnswer: JSON.stringify(statements),
         },
       };
@@ -304,7 +310,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
         questionType,
         maxScore,
         options: ["Benar", "Salah"],
-        answerKey: { correctAnswer: parsed },
+        answerKey: { correctAnswer: parsed, imageUrl },
         legacyCorrectAnswer: parsed ? "Benar" : "Salah",
       },
     };
@@ -392,7 +398,7 @@ export function normalizeQuestionPayload(body: QuestionPayload):
         questionType,
         maxScore,
         options: pairs.map((pair) => pair.left),
-        answerKey: { pairs },
+        answerKey: { pairs, imageUrl },
         legacyCorrectAnswer: JSON.stringify(pairs),
       },
     };

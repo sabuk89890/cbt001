@@ -8,10 +8,31 @@ export default function CreateQuestionPage() {
   const [questionType, setQuestionType] = useState("multiple-choice");
   const [optionsJson, setOptionsJson] = useState("[]");
   const [correctAnswer, setCorrectAnswer] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [message, setMessage] = useState("");
+
+  const MAX_IMAGE_SIZE = 100 * 1024;
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_IMAGE_SIZE) {
+      setMessage("Ukuran gambar melebihi 100KB");
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(typeof reader.result === "string" ? reader.result : "");
+      setMessage("");
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = { id, prompt, question_type: questionType, options: JSON.parse(optionsJson), correct_answer: correctAnswer };
+    const payload: any = { id, prompt, question_type: questionType, options: JSON.parse(optionsJson), correct_answer: correctAnswer };
+    if (imageUrl) payload.answer_key = { imageUrl };
     const res = await fetch('/api/admin/questions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
     if (res.ok) {
       alert('Soal dibuat');
@@ -25,6 +46,7 @@ export default function CreateQuestionPage() {
     <div className="p-8">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-semibold mb-4">Buat Soal Baru</h1>
+        {message ? <p className="text-sm text-red-600 mb-2">{message}</p> : null}
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="block text-sm">ID (unik)</label>
@@ -45,6 +67,16 @@ export default function CreateQuestionPage() {
           <div>
             <label className="block text-sm">Options (JSON)</label>
             <textarea value={optionsJson} onChange={(e)=>setOptionsJson(e.target.value)} className="input" />
+          </div>
+          <div>
+            <label className="block text-sm">Upload Gambar (opsional, max 100KB)</label>
+            <input type="file" accept="image/*" onChange={handleImageChange} className="input" />
+            {imageUrl && (
+              <div className="mt-2">
+                <img src={imageUrl} alt="Preview" className="max-h-40" />
+                <button type="button" onClick={()=>setImageUrl("")} className="text-sm text-red-600">Hapus</button>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm">Correct Answer</label>
