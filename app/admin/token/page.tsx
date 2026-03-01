@@ -26,6 +26,9 @@ export default function AdminTokenPage() {
 
   useEffect(() => {
     void loadSessions();
+    // auto-poll every 30s to refresh token list
+    const iv = window.setInterval(() => void loadSessions(), 30000);
+    return () => clearInterval(iv);
   }, []);
 
   const findToken = (sessionId: string) => {

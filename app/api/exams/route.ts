@@ -84,13 +84,53 @@ export async function POST(request: Request) {
   }
 }
 
+function makeRandomToken(length = 6) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let str = "";
+  for (let i = 0; i < length; i++) {
+    str += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return str;
+}
+
 export async function GET() {
   try {
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase.from("exam_sessions").select("id, title, bank_id, starts_at, duration_minutes, settings, is_active").order("created_at", { ascending: false });
+    // first, fetch all sessions for inspection
+    let { data, error } = await supabase
+      .from("exam_sessions")
+      .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+      .order("created_at", { ascending: false });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const nowMs = Date.now();
+    const updates: Array<{ id: string; settings: any }> = [];
+
+    (data ?? []).forEach((s: any) => {
+      const settings = s.settings || {};
+      const interval = typeof settings.refreshInterval === 'number' ? settings.refreshInterval : 0;
+      const last = settings.tokenUpdatedAt ? Date.parse(String(settings.tokenUpdatedAt)) : null;
+      if (interval > 0 && (!last || nowMs - last >= interval * 60000)) {
+        const newTok = makeRandomToken(5);
+        settings.token = newTok;
+        settings.tokenUpdatedAt = new Date().toISOString();
+        updates.push({ id: s.id, settings });
+      }
+    });
+
+    if (updates.length > 0) {
+      for (const upd of updates) {
+        await supabase.from('exam_sessions').update({ settings: upd.settings }).eq('id', upd.id);
+      }
+      // refetch after applying updates
+      const r2 = await supabase
+        .from("exam_sessions")
+        .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+        .order("created_at", { ascending: false });
+      if (!r2.error) data = r2.data;
     }
 
     return NextResponse.json({ data });
