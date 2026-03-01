@@ -103,10 +103,16 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
         // if not exist, start participant now
         let pid = existingParticipantId;
         if (!pid) {
+          // include token if previously stored during validation
+          let payload: any = { studentId };
+          try {
+            const tok = sessionStorage.getItem(`examToken-${sid}`);
+            if (tok) payload.token = tok;
+          } catch {}
           const sr = await fetch(`/api/exams/${sid}/participants/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId }),
+            body: JSON.stringify(payload),
           });
           const sres = await sr.json();
           if (!sr.ok) {

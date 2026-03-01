@@ -12,6 +12,7 @@ const menuItems = [
   { label: "Jadwal Ujian", icon: "📝", href: "/guru/jadwal" },
   { label: "Penilaian Manual", icon: "✅", href: "/guru/penilaian" },
   { label: "Hasil & Laporan", icon: "📁", href: "/guru/hasil" },
+  { label: "Token", icon: "🔑", href: "/guru/token" },
 ];
 
 export default function GuruLayout({ children }: GuruLayoutProps) {

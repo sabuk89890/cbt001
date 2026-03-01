@@ -300,7 +300,24 @@ export default function AdminExamsPage() {
   async function simulateStart(sessionId: string) {
     const studentId = prompt('Masukkan student_id (uuid) untuk simulasi start');
     if (!studentId) return;
-    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId }) });
+
+    let payload: any = { studentId };
+    // check if token is required
+    try {
+      const r = await fetch(`/api/exams/${sessionId}/token`);
+      if (r.ok) {
+        const j = await r.json();
+        if (j.required) {
+          const t = prompt('Masukkan token ujian');
+          if (!t) return;
+          payload.token = t;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const json = await res.json();
     if (!res.ok) {
       alert(json.error ?? 'Gagal memulai peserta');

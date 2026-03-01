@@ -136,6 +136,16 @@ alter table public.exam_sessions
 alter table public.exam_sessions
   add column if not exists is_active boolean not null default false;
 
+-- token for session access (alphanumeric code). admin can set manually or let system rotate automatically.
+-- a session may have zero or one token row. expires_at null means no expiration (manual override).
+create table if not exists public.exam_tokens (
+  session_id text primary key references public.exam_sessions(id) on delete cascade,
+  token text not null,
+  expires_at timestamptz,
+  manual boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.exam_participants (
   id uuid primary key default gen_random_uuid(),
   session_id text not null references public.exam_sessions(id) on delete cascade,

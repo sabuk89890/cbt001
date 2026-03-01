@@ -14,10 +14,28 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: Request, context: RouteContext) {
   try {
     const body = await request.json();
-    const { studentId } = body;
+    const { studentId, token: providedToken } = body as { studentId?: string; token?: string };
     const { id: sessionId } = await context.params;
     if (!studentId) {
       return NextResponse.json({ error: "studentId required" }, { status: 400 });
+    }
+
+    const supabase = createSupabaseAdminClient();
+
+    // enforce token if required
+    const { data: currentToken, error: tokErr } = await supabase
+      .from("exam_tokens")
+      .select("token, expires_at")
+      .eq("session_id", sessionId)
+      .single();
+    if (!tokErr && currentToken) {
+      const now = new Date();
+      if (currentToken.expires_at && new Date(currentToken.expires_at).getTime() < now.getTime()) {
+        return NextResponse.json({ error: 'Token sudah kadaluwarsa' }, { status: 400 });
+      }
+      if (currentToken.token !== (providedToken || "")) {
+        return NextResponse.json({ error: 'Token tidak valid' }, { status: 401 });
+      }
     }
 
     const supabase = createSupabaseAdminClient();
