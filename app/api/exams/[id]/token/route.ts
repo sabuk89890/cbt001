@@ -10,14 +10,13 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("exam_tokens")
-      .select("token, expires_at, manual")
+      .select("token, expires_at, manual, refresh_interval")
       .eq("session_id", id)
       .single();
 
     if (error) {
-      // not found is not an error, just treat as no token
       if (error.code === "PGRST116" || error.message?.includes("No rows")) {
         return NextResponse.json({ required: false });
       }
@@ -29,8 +28,25 @@ export async function GET(_request: Request, context: RouteContext) {
     }
 
     const now = new Date();
+    // if refresh_interval defined and token expired or missing, generate new one
+    if (data.refresh_interval && data.refresh_interval > 0) {
+      // check expiration
+      if (!data.expires_at || new Date(data.expires_at).getTime() <= now.getTime()) {
+        const newTok = makeRandomToken(5);
+        const newExpiry = new Date(now.getTime() + data.refresh_interval * 60000).toISOString();
+        const upd = await supabase
+          .from('exam_tokens')
+          .update({ token: newTok, expires_at: newExpiry, manual: false })
+          .eq('session_id', id);
+        if (!upd.error) {
+          data.token = newTok;
+          data.expires_at = newExpiry;
+          data.manual = false;
+        }
+      }
+    }
+
     if (data.expires_at && new Date(data.expires_at).getTime() < now.getTime()) {
-      // expired token is treated as non‑required
       return NextResponse.json({ required: false });
     }
 

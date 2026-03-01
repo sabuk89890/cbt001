@@ -39,9 +39,11 @@ export async function POST(request: Request, context: RouteContext) {
     const body = await request.json();
     const rawToken = typeof body.token === "string" ? body.token.trim() : "";
     const expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
-    const manual = body.manual === true;
+    const refreshInterval = typeof body.refreshInterval === 'number' ? body.refreshInterval : null;
+    // if an interval is provided and greater than zero, we treat as automatic (manual=false)
+    const manual = !(refreshInterval && refreshInterval > 0);
 
-    const token = rawToken || makeRandomToken(8);
+    const token = rawToken || makeRandomToken(5);
 
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase
@@ -50,6 +52,7 @@ export async function POST(request: Request, context: RouteContext) {
         session_id: id,
         token,
         expires_at: expiresAt,
+        refresh_interval: refreshInterval,
         manual,
       })
       .select()

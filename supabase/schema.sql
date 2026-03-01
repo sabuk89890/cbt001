@@ -142,9 +142,13 @@ create table if not exists public.exam_tokens (
   session_id text primary key references public.exam_sessions(id) on delete cascade,
   token text not null,
   expires_at timestamptz,
+  refresh_interval int, -- minutes between automatic refresh (null or 0 = no auto)
   manual boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.exam_tokens
+  add column if not exists refresh_interval int;
 
 create table if not exists public.exam_participants (
   id uuid primary key default gen_random_uuid(),

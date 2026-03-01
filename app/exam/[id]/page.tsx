@@ -11,6 +11,8 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const [sessionId, setSessionId] = useState("");
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
+  const [confirmationVisible, setConfirmationVisible] = useState(true);
+  const [tokenInput, setTokenInput] = useState("");
   const [studentName, setStudentName] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -100,14 +102,20 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           if (me) existingParticipantId = me.id;
         } catch {}
 
-        // if not exist, start participant now
+        // if not exist, either show confirmation or start participant
         let pid = existingParticipantId;
+        if (!pid && confirmationVisible) {
+          // don't proceed, let UI show confirmation
+          setIsLoading(false);
+          return;
+        }
         if (!pid) {
           // include token if previously stored during validation
           let payload: any = { studentId };
+          if (tokenInput) payload.token = tokenInput;
           try {
             const tok = sessionStorage.getItem(`examToken-${sid}`);
-            if (tok) payload.token = tok;
+            if (tok && !payload.token) payload.token = tok;
           } catch {}
           const sr = await fetch(`/api/exams/${sid}/participants/start`, {
             method: 'POST',
@@ -248,7 +256,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
       mounted = false;
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [params]);
+  }, [params, confirmationVisible]);
 
   // keep answers in state; update handler
   const handleAnswerChange = useCallback((questionId: string, value: unknown) => {
@@ -395,6 +403,46 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   };
 
   const currentQuestion = questions[currentIndex];
+
+  if (confirmationVisible && !isLoading && !participantId && sessionInfo) {
+    // show confirmation dialog prior to starting exam
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-100">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+          <h2 className="text-xl font-semibold mb-4">Konfirmasi Tes</h2>
+          <p className="text-sm">Nama Tes</p>
+          <p className="font-medium mb-2">{sessionInfo.title || '-'}</p>
+          <p className="text-sm">Status Tes</p>
+          <p className="font-medium mb-2">{sessionInfo.is_active ? 'Sedang berjalan' : 'Tes Baru'}</p>
+          <p className="text-sm">Waktu Tes</p>
+          <p className="font-medium mb-2">{sessionInfo.starts_at ? new Date(sessionInfo.starts_at).toLocaleString() : '-'}</p>
+          <p className="text-sm">Alokasi Waktu Tes</p>
+          <p className="font-medium mb-4">{sessionInfo.duration_minutes ?? sessionInfo.settings?.durationMinutes ?? '-'} Menit</p>
+          {/* token field if required */}
+          {sessionInfo && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700">Token</label>
+              <input
+                type="text"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className="mt-1 w-full rounded border px-3 py-2"
+              />
+            </div>
+          )}
+          <button
+            onClick={() => {
+              setConfirmationVisible(false);
+              setIsLoading(true);
+            }}
+            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white"
+          >
+            Mulai
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main

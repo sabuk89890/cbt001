@@ -6,6 +6,7 @@ export default function AdminTokenPage() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [tokens, setTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState<string>("");
 
   const loadAll = async () => {
     setLoading(true);
@@ -34,6 +35,10 @@ export default function AdminTokenPage() {
     const expiresAt = prompt('Masukkan tanggal kadaluwarsa (YYYY-MM-DD HH:MM) atau kosong untuk tanpa kadaluwarsa');
     let body: any = {};
     if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
+    const interval = parseInt(refreshInterval);
+    if (!isNaN(interval) && interval > 0) {
+      body.refreshInterval = interval;
+    }
     const res = await fetch(`/api/admin/exams/${sessionId}/token`, { method: 'POST', headers: { 'content-type':'application/json' }, body: JSON.stringify(body) });
     if (res.ok) {
       alert('Token dibuat / diperbarui');
@@ -62,6 +67,10 @@ export default function AdminTokenPage() {
         <h1 className="text-2xl font-semibold mb-4">Token Ujian (Admin)</h1>
         <p className="text-sm text-slate-500 mb-4">Kelola token akses untuk sesi ujian. Token dapat diatur manual atau dibuat otomatis dengan tanggal kadaluwarsa.</p>
 
+        <div className="mb-3 flex items-center gap-2">
+          <label className="text-sm">Refresh interval (menit, kosong = manual)</label>
+          <input type="number" min="0" value={refreshInterval} onChange={(e)=>setRefreshInterval(e.target.value)} className="input w-24" />
+        </div>
         <button className="px-3 py-2 bg-blue-600 text-white rounded mb-4" onClick={loadAll} disabled={loading}>Refresh</button>
 
         <div className="overflow-x-auto">
