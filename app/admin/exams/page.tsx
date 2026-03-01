@@ -111,11 +111,9 @@ export default function AdminExamsPage() {
       return;
     }
 
-    const payload = {
+    const payload: any = {
       title,
       bankId: selectedBank,
-      startsAt: combine(startsDate, startsTime),
-      endsAt: combine(endsDate, endsTime),
       durationMinutes: Number(duration),
       settings: {
         numQuestions: Number(numQuestions),
@@ -128,6 +126,16 @@ export default function AdminExamsPage() {
       },
       targetClasses: selectedClasses ?? []
     };
+    // dates: only include starts/ends if explicitly provided, or always include starts on create
+    const startVal = combine(startsDate, startsTime);
+    if (startVal !== null || !editingId) payload.startsAt = startVal;
+    const endVal = combine(endsDate, endsTime);
+    if (endVal !== null) {
+      payload.endsAt = endVal;
+    } else if (!editingId) {
+      // creating with no end leaves it null explicitly
+      payload.endsAt = null;
+    }
 
     let res: Response;
     if (editingId) {
@@ -244,6 +252,13 @@ export default function AdminExamsPage() {
       const dt = new Date(s.endsAt);
       setEndsDate(dt.toISOString().slice(0,10));
       setEndsTime(dt.toISOString().slice(11,16));
+    } else if (session.starts_at && (session.duration_minutes ?? session.settings?.durationMinutes)) {
+      // derive end from start + duration when explicit end missing
+      const d = new Date(session.starts_at);
+      const dur = session.duration_minutes ?? session.settings?.durationMinutes ?? 0;
+      d.setMinutes(d.getMinutes() + Number(dur));
+      setEndsDate(d.toISOString().slice(0,10));
+      setEndsTime(d.toISOString().slice(11,16));
     } else { setEndsDate(null); setEndsTime(null); }
 
     // duration
