@@ -8,6 +8,11 @@ export default function AdminTokenPage() {
   const [loading, setLoading] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState<string>("");
 
+  // form state
+  const [editingSession, setEditingSession] = useState<string | null>(null);
+  const [formToken, setFormToken] = useState("");
+  const [formInterval, setFormInterval] = useState<string>("");
+
   const loadAll = async () => {
     setLoading(true);
     try {
@@ -31,17 +36,19 @@ export default function AdminTokenPage() {
     return tokens.find((t) => t.session_id === sessionId) || null;
   };
 
-  const handleGenerate = async (sessionId: string) => {
-    const expiresAt = prompt('Masukkan tanggal kadaluwarsa (YYYY-MM-DD HH:MM) atau kosong untuk tanpa kadaluwarsa');
+  const handleSave = async (sessionId: string) => {
     let body: any = {};
-    if (expiresAt) body.expiresAt = new Date(expiresAt).toISOString();
-    const interval = parseInt(refreshInterval);
+    if (formToken) body.token = formToken;
+    const interval = parseInt(formInterval);
     if (!isNaN(interval) && interval > 0) {
       body.refreshInterval = interval;
     }
     const res = await fetch(`/api/admin/exams/${sessionId}/token`, { method: 'POST', headers: { 'content-type':'application/json' }, body: JSON.stringify(body) });
     if (res.ok) {
       alert('Token dibuat / diperbarui');
+      setEditingSession(null);
+      setFormToken("");
+      setFormInterval("");
       await loadAll();
     } else {
       const j = await res.json();
@@ -75,6 +82,33 @@ export default function AdminTokenPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
+          {/* edit modal/form */}
+          {editingSession && (
+            <tbody className="bg-gray-50">
+              <tr>
+                <td colSpan={5} className="p-4">
+                  <div className="rounded border p-4 bg-white">
+                    <h3 className="font-semibold mb-2">Buat/Ubah Token</h3>
+                    <div className="mb-2">
+                      <label className="block text-sm">Token</label>
+                      <div className="flex gap-2 mt-1">
+                        <input value={formToken} onChange={(e)=>setFormToken(e.target.value)} className="input flex-1" />
+                        <button type="button" className="btn btn-secondary" onClick={()=>setFormToken(Math.random().toString(36).substring(2,7))}>Generate</button>
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="block text-sm">Auto-refresh (menit, 0 = manual)</label>
+                      <input type="number" min="0" value={formInterval} onChange={(e)=>setFormInterval(e.target.value)} className="input w-24 mt-1" />
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button className="btn btn-primary" onClick={()=>handleSave(editingSession!)}>Simpan</button>
+                      <button className="btn btn-secondary" onClick={()=>setEditingSession(null)}>Batal</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          )}
             <thead>
               <tr className="text-left text-slate-600 border-b">
                 <th className="py-2">Sesi</th>
@@ -87,16 +121,22 @@ export default function AdminTokenPage() {
             <tbody>
               {sessions.map((s) => {
                 const tok = findToken(s.id);
-                const expired = tok && tok.expires_at && new Date(tok.expires_at) < new Date();
                 return (
                   <tr key={s.id} className="border-b">
                     <td className="py-2">{s.title || s.id}</td>
                     <td className="py-2">{tok ? tok.token : '-'}</td>
-                    <td className="py-2">{tok ? (tok.expires_at ? new Date(tok.expires_at).toLocaleString() : '—') : '-'}</td>
+                    <td className="py-2">{tok ? (tok.refresh_interval ? `${tok.refresh_interval}m` : 'manual') : '-'}</td>
                     <td className="py-2">{tok ? (tok.manual ? 'Ya' : 'Tidak') : '-'}</td>
                     <td className="py-2">
                       <div className="flex gap-2">
-                        <button className="px-2 py-1 bg-green-600 text-white rounded" onClick={()=>handleGenerate(s.id)}>
+                        <button
+                          className="px-2 py-1 bg-green-600 text-white rounded"
+                          onClick={() => {
+                            setEditingSession(s.id);
+                            setFormToken(tok?.token ?? '');
+                            setFormInterval(tok?.refresh_interval ? String(tok.refresh_interval) : '');
+                          }}
+                        >
                           {tok ? 'Ubah' : 'Buat'}
                         </button>
                         {tok && (
