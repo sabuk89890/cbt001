@@ -481,9 +481,6 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
       {!isLoading && questions.length === 0 ? (
         <div className="mt-6 rounded-md bg-amber-50 border border-amber-200 p-6 text-amber-800">
           <p>Tidak ada soal tersedia untuk sesi ini. Hubungi pengajar atau coba lagi nanti.</p>
-          <p className="mt-2 text-sm">
-            Jika Anda seorang pengajar, periksa pengaturan sesi di <a href="/admin/exams" className="underline font-medium">halaman manajemen ujian</a> dan pastikan bank soal berisi pertanyaan.
-          </p>
         </div>
       ) : null}
 
