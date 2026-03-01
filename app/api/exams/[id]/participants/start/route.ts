@@ -38,8 +38,6 @@ export async function POST(request: Request, context: RouteContext) {
       }
     }
 
-    const supabase = createSupabaseAdminClient();
-
     // load session
     const { data: session, error: sessErr } = await supabase
       .from("exam_sessions")
