@@ -80,13 +80,26 @@ export default function AdminTokenPage() {
   };
 
   const handleRefresh = async (sessionId: string) => {
+    // generate a new random token and update settings directly
     const tok = makeRandomToken(5);
-    setEditingSession(sessionId);
-    setFormToken(tok);
-    // keep existing interval
-    const current = findToken(sessionId);
-    setFormInterval(current?.refresh_interval ? String(current.refresh_interval) : '');
-    await handleSave(sessionId);
+    const sess = sessions.find((x) => x.id === sessionId);
+    if (!sess) return;
+    const newSettings = { ...(sess.settings || {}), token: tok, tokenUpdatedAt: new Date().toISOString() };
+    try {
+      const res = await fetch(`/api/exams/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: newSettings }),
+      });
+      if (!res.ok) {
+        const j = await res.json();
+        alert('Gagal refresh: ' + (j.error || ''));
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Gagal refresh token');
+    }
+    await loadSessions();
   };
 
   return (
