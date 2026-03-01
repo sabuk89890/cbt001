@@ -103,40 +103,30 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           if (me) existingParticipantId = me.id;
         } catch {}
 
-        // if not exist, either show confirmation or start participant
-        let pid = existingParticipantId;
-        if (!pid && confirmationVisible) {
-          // don't proceed, let UI show confirmation
+        // if confirmation box still showing, wait for user click
+        if (confirmationVisible) {
           setIsLoading(false);
           return;
         }
-        if (!pid) {
-          // include token if previously stored during validation
-          let payload: any = { studentId };
-          if (tokenInput) payload.token = tokenInput;
-          try {
-            const tok = sessionStorage.getItem(`examToken-${sid}`);
-            if (tok && !payload.token) payload.token = tok;
-          } catch {}
-          const sr = await fetch(`/api/exams/${sid}/participants/start`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const sres = await sr.json();
-          if (!sr.ok) {
-            // validation error (likely wrong token) -> surface to user
-            setStartError(sres.error ?? 'Gagal memulai ujian');
-            setConfirmationVisible(true);
-            setIsLoading(false);
-            return;
-          }
-          pid = sres.data?.participantId;
-          // remember token for this session so user doesn't have to re-enter
-          if (tokenInput) {
-            try { sessionStorage.setItem(`examToken-${sid}`, tokenInput); } catch {}
-          }
+
+        // always call start endpoint to validate token (and create participant if needed)
+        let pid = existingParticipantId;
+        const startPayload: any = { studentId };
+        if (tokenInput) startPayload.token = tokenInput;
+
+        const sr = await fetch(`/api/exams/${sid}/participants/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(startPayload),
+        });
+        const sres = await sr.json();
+        if (!sr.ok) {
+          setStartError(sres.error ?? 'Gagal memulai ujian');
+          setConfirmationVisible(true);
+          setIsLoading(false);
+          return;
         }
+        pid = sres.data?.participantId;
 
         if (!mounted) return;
         setParticipantId(pid ?? null);
