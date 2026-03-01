@@ -80,12 +80,27 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     // require token if configured
-    const requiredTokenRaw = session.settings?.token ?? null;
-    const requiredToken = typeof requiredTokenRaw === 'string' ? requiredTokenRaw.trim() : null;
+    const requiredToken = currentToken ? String(currentToken).trim() : null;
     if (requiredToken) {
       const provided = (body.token ?? '').toString().trim();
       if (provided !== requiredToken) {
         return NextResponse.json({ error: 'Token Salah' }, { status: 400 });
+      }
+    }
+
+    // before validating token, refresh it automatically if interval configured
+    const settings = session.settings || {};
+    const refreshInterval = typeof settings.refreshInterval === 'number' ? settings.refreshInterval : 0;
+    let currentToken = settings.token ?? null;
+    const lastUpdate = settings.tokenUpdatedAt ? Date.parse(String(settings.tokenUpdatedAt)) : null;
+    if (refreshInterval > 0) {
+      const nowMs = Date.now();
+      if (!lastUpdate || nowMs - lastUpdate >= refreshInterval * 60000) {
+        // generate new token and persist back to session.settings
+        const newTok = makeRandomToken(5);
+        currentToken = newTok;
+        const newSettings = { ...settings, token: newTok, tokenUpdatedAt: new Date().toISOString() };
+        await supabase.from('exam_sessions').update({ settings: newSettings }).eq('id', sessionId);
       }
     }
 
