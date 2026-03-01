@@ -218,47 +218,13 @@ export default function StudentLobbyPage() {
                           ? 'bg-slate-200 text-slate-700 cursor-not-allowed'
                           : 'bg-blue-600 text-white'
                       }`}
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         if (bankCount <= 0) {
                           e.preventDefault();
                           alert('Soal belum tersedia untuk sesi ini. Hubungi pengajar.');
-                          return;
-                        }
-                        if (!isOngoing) {
+                        } else if (!isOngoing) {
                           e.preventDefault();
                           alert('Ujian belum dimulai.');
-                          return;
-                        }
-
-                        // check token requirement
-                        try {
-                          const resp = await fetch(`/api/exams/${s.id}/token`);
-                          if (resp.ok) {
-                            const j = await resp.json();
-                            if (j.required) {
-                              e.preventDefault();
-                              const userToken = prompt('Masukkan token ujian');
-                              if (!userToken) return;
-                              const v = await fetch(`/api/exams/${s.id}/token`, {
-                                method: 'POST',
-                                headers: { 'content-type': 'application/json' },
-                                body: JSON.stringify({ token: userToken }),
-                              });
-                              const vj = await v.json();
-                              if (!v.ok || !vj.ok) {
-                                alert(vj.error || 'Token tidak valid');
-                              } else {
-                                // remember token for the upcoming start request
-                                try {
-                                  sessionStorage.setItem(`examToken-${s.id}`, userToken);
-                                } catch {}
-                                // manually navigate since we prevented default
-                                window.location.href = `/exam/${s.id}`;
-                              }
-                            }
-                          }
-                        } catch (err) {
-                          console.error(err);
                         }
                       }}
                     >
