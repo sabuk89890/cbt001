@@ -79,15 +79,6 @@ export async function POST(request: Request, context: RouteContext) {
       }
     }
 
-    // require token if configured
-    const requiredToken = currentToken ? String(currentToken).trim() : null;
-    if (requiredToken) {
-      const provided = (body.token ?? '').toString().trim();
-      if (provided !== requiredToken) {
-        return NextResponse.json({ error: 'Token Salah' }, { status: 400 });
-      }
-    }
-
     // before validating token, refresh it automatically if interval configured
     const settings = session.settings || {};
     const refreshInterval = typeof settings.refreshInterval === 'number' ? settings.refreshInterval : 0;
@@ -101,6 +92,15 @@ export async function POST(request: Request, context: RouteContext) {
         currentToken = newTok;
         const newSettings = { ...settings, token: newTok, tokenUpdatedAt: new Date().toISOString() };
         await supabase.from('exam_sessions').update({ settings: newSettings }).eq('id', sessionId);
+      }
+    }
+
+    // require token if configured
+    const requiredToken = currentToken ? String(currentToken).trim() : null;
+    if (requiredToken) {
+      const provided = (body.token ?? '').toString().trim();
+      if (provided !== requiredToken) {
+        return NextResponse.json({ error: 'Token Salah' }, { status: 400 });
       }
     }
 
