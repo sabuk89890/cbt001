@@ -89,20 +89,40 @@ export default function AdminTokenPage() {
                 <td colSpan={5} className="p-4">
                   <div className="rounded border p-4 bg-white">
                     <h3 className="font-semibold mb-2">Buat/Ubah Token</h3>
-                    <div className="mb-2">
-                      <label className="block text-sm">Token</label>
-                      <div className="flex gap-2 mt-1">
-                        <input value={formToken} onChange={(e)=>setFormToken(e.target.value)} className="input flex-1" />
-                        <button type="button" className="btn btn-secondary" onClick={()=>setFormToken(Math.random().toString(36).substring(2,7))}>Generate</button>
-                      </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium">Token</label>
+                      <input
+                        value={formToken}
+                        onChange={(e) => setFormToken(e.target.value)}
+                        placeholder="5 karakter alfanumerik"
+                        className="input mt-1 w-full"
+                      />
+                      <button
+                        type="button"
+                        className="mt-2 rounded bg-gray-200 px-3 py-1 text-sm"
+                        onClick={() => setFormToken(Math.random().toString(36).substring(2, 7))}
+                      >
+                        Generate Token
+                      </button>
                     </div>
-                    <div className="mb-2">
-                      <label className="block text-sm">Auto-refresh (menit, 0 = manual)</label>
-                      <input type="number" min="0" value={formInterval} onChange={(e)=>setFormInterval(e.target.value)} className="input w-24 mt-1" />
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium">Auto-refresh (menit, 0 = manual)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formInterval}
+                        onChange={(e) => setFormInterval(e.target.value)}
+                        placeholder="0 untuk manual"
+                        className="input mt-1 w-full"
+                      />
                     </div>
-                    <div className="flex gap-2 mt-3">
-                      <button className="btn btn-primary" onClick={()=>handleSave(editingSession!)}>Simpan</button>
-                      <button className="btn btn-secondary" onClick={()=>setEditingSession(null)}>Batal</button>
+                    <div className="flex gap-2 mt-4">
+                      <button className="rounded bg-blue-600 px-4 py-2 text-white" onClick={() => handleSave(editingSession!)}>
+                        Simpan
+                      </button>
+                      <button className="rounded border px-4 py-2" onClick={() => setEditingSession(null)}>
+                        Batal
+                      </button>
                     </div>
                   </div>
                 </td>
