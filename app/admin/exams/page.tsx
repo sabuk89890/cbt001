@@ -19,6 +19,7 @@ export default function AdminExamsPage() {
   const [numQuestions, setNumQuestions] = useState(10);
   const [lockFinishMinutes, setLockFinishMinutes] = useState<number>(0);
   const [token, setToken] = useState<string>('');
+  const [refreshInterval, setRefreshInterval] = useState<string>('');
   const [banks, setBanks] = useState<any[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
@@ -116,7 +117,15 @@ export default function AdminExamsPage() {
       startsAt: combine(startsDate, startsTime),
       endsAt: combine(endsDate, endsTime),
       durationMinutes: Number(duration),
-      settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter, lockFinishMinutes: Number(lockFinishMinutes), token: token || null },
+      settings: {
+        numQuestions: Number(numQuestions),
+        shuffleQuestions,
+        shuffleAnswers,
+        showScoreAfter,
+        lockFinishMinutes: Number(lockFinishMinutes),
+        token: token || null,
+        refreshInterval: refreshInterval ? Number(refreshInterval) : null,
+      },
       targetClasses: selectedClasses ?? []
     };
 
@@ -164,6 +173,7 @@ export default function AdminExamsPage() {
     setSelectedBank(session.bank_id ?? null);
     setBankTeacherName(null);
     setToken(session.settings?.token ?? '');
+    setRefreshInterval(session.settings?.refreshInterval ?? '');
     // try to populate bank info (available questions + teacher) from loaded banks
     try {
       let bankObj = banks.find(b => b.id === session.bank_id) as any | undefined;
@@ -477,6 +487,11 @@ export default function AdminExamsPage() {
                 <label className="block text-sm font-medium text-slate-700">Token</label>
                 <input type="text" className="rounded border px-2 h-10 w-full" value={token} onChange={(e)=>setToken(e.target.value)} />
                 <p className="text-xs text-slate-500">Kosongkan jika tidak diperlukan</p>
+              </div>
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-slate-700">Refresh interval (menit)</label>
+                <input type="number" min="0" className="rounded border px-2 h-10 w-full" value={refreshInterval} onChange={(e)=>setRefreshInterval(e.target.value)} />
+                <p className="text-xs text-slate-500">0 untuk manual / nonaktif</p>
               </div>
               <div className="flex gap-2">
                 <button
