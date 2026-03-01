@@ -63,9 +63,8 @@ export async function POST(request: Request, context: RouteContext) {
 
     const numQuestions = (session.settings && session.settings.numQuestions) || 0;
 
-    // check for an existing participant for this student. if one exists but has no
-    // questions assigned, drop it so we can create a fresh record. this handles the
-    // case where a participant was created but inserting session_questions failed.
+    // compute an existing participant id for reuse later (but don't return yet)
+    let existingParticipantId: string | null = null;
     if (studentId) {
       const { data: existing } = await supabase
         .from("exam_participants")
@@ -82,8 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
         if (count === 0) {
           await supabase.from("exam_participants").delete().eq("id", existing.id);
         } else {
-          // reuse existing participant with questions
-          return NextResponse.json({ data: { participantId: existing.id } }, { status: 200 });
+          existingParticipantId = existing.id;
         }
       }
     }
@@ -123,6 +121,11 @@ export async function POST(request: Request, context: RouteContext) {
     if (sessionEnds) {
       const ends = new Date(sessionEnds);
       if (now > ends) return NextResponse.json({ error: 'Waktu ujian telah berakhir' }, { status: 400 });
+    }
+
+    // if there is an existing participant with questions, return it now (after validation)
+    if (existingParticipantId) {
+      return NextResponse.json({ data: { participantId: existingParticipantId } }, { status: 200 });
     }
 
     // fetch candidate questions for bank
