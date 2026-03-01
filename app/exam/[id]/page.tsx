@@ -415,7 +415,17 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           <p className="text-sm">Status Tes</p>
           <p className="font-medium mb-2">{sessionInfo.is_active ? 'Sedang berjalan' : 'Tes Baru'}</p>
           <p className="text-sm">Waktu Tes</p>
-          <p className="font-medium mb-2">{sessionInfo.starts_at ? new Date(sessionInfo.starts_at).toLocaleString() : '-'}</p>
+          <p className="font-medium mb-2">
+            {(() => {
+              const raw =
+                sessionInfo.starts_at ||
+                sessionInfo.startsAt ||
+                sessionInfo.settings?.startsAt ||
+                sessionInfo.settings?.starts_at ||
+                null;
+              return raw ? new Date(raw).toLocaleString() : '-';
+            })()}
+          </p>
           <p className="text-sm">Alokasi Waktu Tes</p>
           <p className="font-medium mb-4">{sessionInfo.duration_minutes ?? sessionInfo.settings?.durationMinutes ?? '-'} Menit</p>
           {/* token field if required */}
