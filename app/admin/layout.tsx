@@ -15,6 +15,7 @@ const menuItems = [
   { label: "Pelaksanaan", icon: "🎯", href: "/admin/pelaksanaan" },
   { label: "Penilaian Manual", icon: "✅", href: "/admin/review" },
   { label: "Hasil & Laporan", icon: "📁", href: "/admin/hasil" },
+  { label: "Token", icon: "🔑", href: "/admin/token" },
   { label: "Pengaturan Sistem", icon: "⚙️", href: "/admin/pengaturan" },
 ];
 
