@@ -18,6 +18,7 @@ export default function AdminExamsPage() {
   const [duration, setDuration] = useState(60);
   const [numQuestions, setNumQuestions] = useState(10);
   const [lockFinishMinutes, setLockFinishMinutes] = useState<number>(0);
+  const [token, setToken] = useState<string>('');
   const [banks, setBanks] = useState<any[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
@@ -115,7 +116,7 @@ export default function AdminExamsPage() {
       startsAt: combine(startsDate, startsTime),
       endsAt: combine(endsDate, endsTime),
       durationMinutes: Number(duration),
-      settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter, lockFinishMinutes: Number(lockFinishMinutes) },
+      settings: { numQuestions: Number(numQuestions), shuffleQuestions, shuffleAnswers, showScoreAfter, lockFinishMinutes: Number(lockFinishMinutes), token: token || null },
       targetClasses: selectedClasses ?? []
     };
 
@@ -162,6 +163,7 @@ export default function AdminExamsPage() {
     setTitle(session.title ?? '');
     setSelectedBank(session.bank_id ?? null);
     setBankTeacherName(null);
+    setToken(session.settings?.token ?? '');
     // try to populate bank info (available questions + teacher) from loaded banks
     try {
       let bankObj = banks.find(b => b.id === session.bank_id) as any | undefined;
@@ -300,24 +302,7 @@ export default function AdminExamsPage() {
   async function simulateStart(sessionId: string) {
     const studentId = prompt('Masukkan student_id (uuid) untuk simulasi start');
     if (!studentId) return;
-
-    let payload: any = { studentId };
-    // check if token is required
-    try {
-      const r = await fetch(`/api/exams/${sessionId}/token`);
-      if (r.ok) {
-        const j = await r.json();
-        if (j.required) {
-          const t = prompt('Masukkan token ujian');
-          if (!t) return;
-          payload.token = t;
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId }) });
     const json = await res.json();
     if (!res.ok) {
       alert(json.error ?? 'Gagal memulai peserta');
@@ -488,6 +473,11 @@ export default function AdminExamsPage() {
                 </div>
               </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={showScoreAfter} onChange={(e)=>setShowScoreAfter(e.target.checked)} /> Tampilkan nilai setelah ujian</label>
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-slate-700">Token</label>
+                <input type="text" className="rounded border px-2 h-10 w-full" value={token} onChange={(e)=>setToken(e.target.value)} />
+                <p className="text-xs text-slate-500">Kosongkan jika tidak diperlukan</p>
+              </div>
               <div className="flex gap-2">
                 <button
                 type="button"
@@ -523,7 +513,10 @@ export default function AdminExamsPage() {
                   <div className="pl-3">
                     <div className="flex justify-between items-start">
                       <h3 className="text-lg font-semibold">{s.title ?? s.id}</h3>
-                      <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
+                      <div className="flex items-center gap-1">
+                        {s.settings?.token ? <span className="text-red-500 text-xs">🔒</span> : null}
+                        <div className="text-xs text-slate-500">{s.duration_minutes != null ? `${s.duration_minutes}m` : ''}</div>
+                      </div>
                     </div>
                     <div className="text-sm text-slate-500 mt-2">ID: {s.id}</div>
                     <div className="text-sm text-slate-500">Bank: {bankTitle} ({bankCount} soal)</div>

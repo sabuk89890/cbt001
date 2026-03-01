@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type ExamSession = {
   id: string;
   title: string;
-  bank_id?: string | null;
   starts_at?: string | null;
   duration_minutes?: number | null;
   settings?: any;
@@ -199,7 +198,9 @@ export default function StudentLobbyPage() {
                     <p className="mt-1 text-sm text-slate-500">Jadwal: {startsAt ? formatTime(s.starts_at) : "-"}</p>
                     <p className="text-sm text-slate-500">Durasi: {duration ? `${duration} menit` : "-"}</p>
                   </div>
-                  <div className="rounded-2xl bg-violet-100 p-3 text-violet-600">🧾</div>
+                  <div className="rounded-2xl bg-violet-100 p-3 text-violet-600">
+                    🧾{s.settings?.token ? ' 🔒' : ''}
+                  </div>
                 </div>
 
                 <div className="mt-5">

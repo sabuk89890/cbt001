@@ -13,6 +13,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [confirmationVisible, setConfirmationVisible] = useState(true);
   const [tokenInput, setTokenInput] = useState("");
+  const [startError, setStartError] = useState("");
   const [studentName, setStudentName] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -124,11 +125,17 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           });
           const sres = await sr.json();
           if (!sr.ok) {
-            // silently fail start; user will see the UI without the message
+            // validation error (likely wrong token) -> surface to user
+            setStartError(sres.error ?? 'Gagal memulai ujian');
+            setConfirmationVisible(true);
             setIsLoading(false);
             return;
           }
           pid = sres.data?.participantId;
+          // remember token for this session so user doesn't have to re-enter
+          if (tokenInput) {
+            try { sessionStorage.setItem(`examToken-${sid}`, tokenInput); } catch {}
+          }
         }
 
         if (!mounted) return;
@@ -428,20 +435,22 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           </p>
           <p className="text-sm">Alokasi Waktu Tes</p>
           <p className="font-medium mb-4">{sessionInfo.duration_minutes ?? sessionInfo.settings?.durationMinutes ?? '-'} Menit</p>
+          {startError ? <p className="text-sm text-red-600 mb-2">{startError}</p> : null}
           {/* token field if required */}
-          {sessionInfo && (
+          {sessionInfo?.settings?.token ? (
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700">Token</label>
               <input
                 type="text"
                 value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
+                onChange={(e) => { setTokenInput(e.target.value); setStartError(''); }}
                 className="mt-1 w-full rounded border px-3 py-2"
               />
             </div>
-          )}
+          ) : null}
           <button
             onClick={() => {
+              setStartError('');
               setConfirmationVisible(false);
               setIsLoading(true);
             }}
