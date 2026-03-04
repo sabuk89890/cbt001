@@ -11,6 +11,8 @@ Starter project CBT (Computer Based Test) dengan Next.js App Router + TypeScript
 - Submit ujian dengan auto-grading lintas tipe soal
 - Essay mendukung koreksi otomatis dan koreksi ulang manual oleh guru
 - API route untuk auth, bank soal, submit ujian, dan manual regrading
+- Fitur backup & restore soal (sekarang menyimpan metadata bank sehingga file
+  bisa dipakai untuk memulihkan bank yang telah dihapus)
 - Manajemen pengguna guru/murid + tampilan siswa per kelas lengkap dengan foto
 
 ## Jalankan Lokal

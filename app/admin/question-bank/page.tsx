@@ -125,31 +125,52 @@ export default function QuestionBankPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       setBackupStatus('done');
-    } catch (e) {
+    } catch (_e) {
       alert('Gagal membuat backup');
       setBackupStatus('error');
     }
   };
 
-  const handleBackupBank = async (bankId: string, bankTitle: string) => {
-    setBackupStatus(`starting-${bankId}`);
+  // when backing up a specific bank we now include the bank metadata as
+  // well as the list of questions. this allows the restore endpoint to
+  // recreate the bank automatically, which makes it possible to delete a
+  // bank and then restore it from the exported file without running into a
+  // foreign‑key error.
+  const handleBackupBank = async (bank: QuestionBank) => {
+    setBackupStatus(`starting-${bank.id}`);
     try {
       const res = await fetch('/api/questions');
       const json = await res.json();
-      const data = (json.data ?? []).filter((q: any) => q.bankId === bankId);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // json.data is typed as unknown by the fetch result; narrow to any[]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const questions = ((json.data as any[]) ?? []).filter((q) => (q as any).bankId === bank.id);
+
+      const payload = {
+        bank: {
+          id: bank.id,
+          title: bank.title,
+          subject: bank.subject,
+          // the api expects the `targetClasses` key, not the snake_case
+          // column name.
+          targetClasses: bank.targetClasses,
+          ownerTeacherId: bank.ownerTeacherId,
+        },
+        questions,
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup-soal-${bankTitle.replace(/\s+/g,'_')}-${Date.now()}.json`;
+      a.download = `backup-soal-${bank.title.replace(/\s+/g,'_')}-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setBackupStatus(`done-${bankId}`);
-    } catch (e) {
-      alert(`Gagal membuat backup untuk bank soal ${bankTitle}`);
-      setBackupStatus(`error-${bankId}`);
+      setBackupStatus(`done-${bank.id}`);
+    } catch (_e) {
+      alert(`Gagal membuat backup untuk bank soal ${bank.title}`);
+      setBackupStatus(`error-${bank.id}`);
     }
   };
 
@@ -158,24 +179,41 @@ export default function QuestionBankPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      let arr: any;
+      // a parse result can be anything, so start with unknown
+      let payload: unknown;
       try {
-        arr = JSON.parse(text);
-      } catch (parseErr) {
+        payload = JSON.parse(text);
+      } catch (_parseErr) {
+        // we don't care about the error itself
         throw new Error('File bukan JSON yang valid');
       }
-      if (!Array.isArray(arr)) throw new Error('Data JSON bukan array soal');
+
+      // payload may be a plain array (legacy) or an object containing
+      // { bank?, questions? }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = payload as any; // narrow for the checks below
+      if (
+        !Array.isArray(p) &&
+        !(p && typeof p === 'object' && Array.isArray(p.questions))
+      ) {
+        throw new Error('Data JSON bukan array soal atau objek restore');
+      }
 
       const res = await fetch('/api/admin/questions/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(arr),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error('restore failed status', res.status, errText);
-        throw new Error(errText || `Server error ${res.status}`);
+        let msg = '';
+        if (res.status === 405) {
+          msg = 'metode tidak diizinkan pada server – pastikan endpoint restore telah deploy';
+        } else {
+          msg = await res.text();
+        }
+        console.error('restore failed status', res.status, msg);
+        throw new Error(msg || `Server error ${res.status}`);
       }
 
       const j = await res.json();
@@ -208,28 +246,6 @@ export default function QuestionBankPage() {
     }
   };
 
-  const handleRestoreFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const arr = JSON.parse(text);
-      if (!Array.isArray(arr)) throw new Error('Data tidak valid');
-      const res = await fetch('/api/admin/questions/restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(arr),
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || 'Gagal restore');
-      alert('Soal berhasil direstore');
-      await loadQuestionBanks();
-    } catch (err) {
-      alert('Gagal restore: ' + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
 
   function resetCreateForm() {
     setTitle("");
@@ -362,6 +378,11 @@ export default function QuestionBankPage() {
           <div>
             <h1 className="text-3xl font-semibold">Manajemen Soal</h1>
             <p className="text-sm text-slate-500">Kelola bank soal dan pemilik guru</p>
+            <p className="mt-1 text-xs text-slate-400">
+              File backup bank soal sekarang menyertakan metadata bank. Anda bisa
+              menghapus bank kemudian me-restore file yang sama untuk membuat
+              kembali bank dan soalnya secara otomatis.
+            </p>
           </div>
           <div className="flex gap-2">
             <button
@@ -434,7 +455,7 @@ export default function QuestionBankPage() {
                 <div className="mt-4 flex flex-wrap gap-2 items-center">
                   <button
                     type="button"
-                    onClick={() => handleBackupBank(bank.id, bank.title)}
+                    onClick={() => handleBackupBank(bank)}
                     className="rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white"
                   >
                     Backup
