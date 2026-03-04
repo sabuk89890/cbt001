@@ -15,10 +15,6 @@ type SubmissionRow = {
   studentName?: string | null;
   className?: string | null;
   created_at?: string | null;
-  // optional fields returned by API/enrichment
-  className?: string | null;
-  studentName?: string | null;
-  status?: string | null;
 };
 
 export default function GuruPenilaianPage() {
