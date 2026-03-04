@@ -9,15 +9,6 @@ function shuffle<T>(arr: T[]) {
   return arr;
 }
 
-function makeRandomToken(length = 6) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let str = "";
-  for (let i = 0; i < length; i++) {
-    str += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return str;
-}
-
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
@@ -32,84 +23,18 @@ export async function POST(request: Request, context: RouteContext) {
     const supabase = createSupabaseAdminClient();
 
     // load session
-    // fetch session metadata; some databases (older backups) may not yet have the
-    // `ends_at` column. We try the full select first and fall back to a safer variant
-    // if the query fails with a column-not-found error.
-    let session: any | null = null;
-    try {
-      const { data, error } = await supabase
-        .from("exam_sessions")
-        .select("id, bank_id, settings, starts_at, duration_minutes, ends_at")
-        .eq("id", sessionId)
-        .single();
-      if (error) throw error;
-      session = data;
-    } catch (err) {
-      // retry without ends_at column
-      const { data, error } = await supabase
-        .from("exam_sessions")
-        .select("id, bank_id, settings, starts_at, duration_minutes")
-        .eq("id", sessionId)
-        .single();
-      if (error || !data) {
-        return NextResponse.json({ error: (error?.message ?? (err instanceof Error ? err.message : String(err))) || "Session not found" }, { status: 404 });
-      }
-      session = data;
-    }
+    const { data: session, error: sessErr } = await supabase
+      .from("exam_sessions")
+      // include ends_at column so we can enforce a hard cutoff if present
+      .select("id, bank_id, settings, starts_at, ends_at, duration_minutes")
+      .eq("id", sessionId)
+      .single();
 
-    if (!session) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    if (sessErr || !session) {
+      return NextResponse.json({ error: sessErr?.message ?? "Session not found" }, { status: 404 });
     }
 
     const numQuestions = (session.settings && session.settings.numQuestions) || 0;
-
-    // compute an existing participant id for reuse later (but don't return yet)
-    let existingParticipantId: string | null = null;
-    if (studentId) {
-      const { data: existing } = await supabase
-        .from("exam_participants")
-        .select("id")
-        .eq("session_id", sessionId)
-        .eq("student_id", studentId)
-        .limit(1)
-        .single();
-      if (existing && existing.id) {
-        const { count } = await supabase
-          .from("session_questions")
-          .select("id", { head: true, count: "exact" })
-          .eq("participant_id", existing.id);
-        if (count === 0) {
-          await supabase.from("exam_participants").delete().eq("id", existing.id);
-        } else {
-          existingParticipantId = existing.id;
-        }
-      }
-    }
-
-    // before validating token, refresh it automatically if interval configured
-    const settings = session.settings || {};
-    const refreshInterval = typeof settings.refreshInterval === 'number' ? settings.refreshInterval : 0;
-    let currentToken = settings.token ?? null;
-    const lastUpdate = settings.tokenUpdatedAt ? Date.parse(String(settings.tokenUpdatedAt)) : null;
-    if (refreshInterval > 0) {
-      const nowMs = Date.now();
-      if (!lastUpdate || nowMs - lastUpdate >= refreshInterval * 60000) {
-        // generate new token and persist back to session.settings
-        const newTok = makeRandomToken(5);
-        currentToken = newTok;
-        const newSettings = { ...settings, token: newTok, tokenUpdatedAt: new Date().toISOString() };
-        await supabase.from('exam_sessions').update({ settings: newSettings }).eq('id', sessionId);
-      }
-    }
-
-    // require token if configured
-    const requiredToken = currentToken ? String(currentToken).trim() : null;
-    if (requiredToken) {
-      const provided = (body.token ?? '').toString().trim();
-      if (provided !== requiredToken) {
-        return NextResponse.json({ error: 'Token Salah' }, { status: 400 });
-      }
-    }
 
     // enforce start/end times (support older DBs which may store endsAt inside settings)
     const now = new Date();
@@ -121,11 +46,6 @@ export async function POST(request: Request, context: RouteContext) {
     if (sessionEnds) {
       const ends = new Date(sessionEnds);
       if (now > ends) return NextResponse.json({ error: 'Waktu ujian telah berakhir' }, { status: 400 });
-    }
-
-    // if there is an existing participant with questions, return it now (after validation)
-    if (existingParticipantId) {
-      return NextResponse.json({ data: { participantId: existingParticipantId } }, { status: 200 });
     }
 
     // fetch candidate questions for bank

@@ -82,6 +82,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const body = await request.json();
     const { id } = await context.params;
+
     const supabase = createSupabaseAdminClient();
     const update: any = {};
     if (body.title !== undefined) update.title = body.title;

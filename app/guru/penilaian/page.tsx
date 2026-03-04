@@ -11,6 +11,9 @@ type SubmissionRow = {
   needs_manual_review?: boolean;
   review_status?: string | null;
   reviewed_by?: string | null;
+  status?: string | null;
+  studentName?: string | null;
+  className?: string | null;
   created_at?: string | null;
   // optional fields returned by API/enrichment
   className?: string | null;
