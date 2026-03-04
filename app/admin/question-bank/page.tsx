@@ -158,18 +158,31 @@ export default function QuestionBankPage() {
     if (!file) return;
     try {
       const text = await file.text();
-      const arr = JSON.parse(text);
-      if (!Array.isArray(arr)) throw new Error('Data tidak valid');
+      let arr: any;
+      try {
+        arr = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error('File bukan JSON yang valid');
+      }
+      if (!Array.isArray(arr)) throw new Error('Data JSON bukan array soal');
+
       const res = await fetch('/api/admin/questions/restore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(arr),
       });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('restore failed status', res.status, errText);
+        throw new Error(errText || `Server error ${res.status}`);
+      }
+
       const j = await res.json();
-      if (!res.ok) throw new Error(j.error || 'Gagal restore');
-      alert('Soal berhasil direstore');
+      alert('Soal berhasil direstore: ' + (j.data?.inserted ?? 0) + ' item');
       await loadQuestionBanks();
     } catch (err) {
+      console.error('restore error', err);
       alert('Gagal restore: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
