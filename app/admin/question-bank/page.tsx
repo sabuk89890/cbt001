@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type TeacherOption = {
   id: string;
@@ -31,6 +31,8 @@ export default function QuestionBankPage() {
   const [classOptions, setClassOptions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -105,6 +107,90 @@ export default function QuestionBankPage() {
     void loadQuestionBanks();
     void loadTeachers();
   }, []);
+
+  const handleBackupAll = async () => {
+    try {
+      const res = await fetch('/api/questions');
+      const json = await res.json();
+      const data = json.data ?? [];
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-soal-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Gagal membuat backup');
+    }
+  };
+
+  const handleRestoreAll = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) throw new Error('Data tidak valid');
+      const res = await fetch('/api/admin/questions/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(arr),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Gagal restore');
+      alert('Soal berhasil direstore');
+      await loadQuestionBanks();
+    } catch (err) {
+      alert('Gagal restore: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      const res = await fetch('/api/questions');
+      const json = await res.json();
+      const data = json.data ?? [];
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-soal-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Gagal membuat backup');
+    }
+  };
+
+  const handleRestoreFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if (!Array.isArray(arr)) throw new Error('Data tidak valid');
+      const res = await fetch('/api/admin/questions/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(arr),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Gagal restore');
+      alert('Soal berhasil direstore');
+      await loadQuestionBanks();
+    } catch (err) {
+      alert('Gagal restore: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   function resetCreateForm() {
     setTitle("");
@@ -238,16 +324,39 @@ export default function QuestionBankPage() {
             <h1 className="text-3xl font-semibold">Manajemen Soal</h1>
             <p className="text-sm text-slate-500">Kelola bank soal dan pemilik guru</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              resetCreateForm();
-              setIsCreateOpen(true);
-            }}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
-          >
-            Buat Bank Soal
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetCreateForm();
+                setIsCreateOpen(true);
+              }}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Buat Bank Soal
+            </button>
+            <button
+              type="button"
+              onClick={handleBackupAll}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Backup Soal
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-medium text-white"
+            >
+              Restore Soal
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={handleRestoreAll}
+            />
+          </div>
         </header>
 
         {message ? <p className="text-sm text-slate-600">{message}</p> : null}
