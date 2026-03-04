@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import type { QuestionRow } from "@/lib/cbt/question-engine";
+// import type { QuestionRow } from "@/lib/cbt/question-engine"; // unused
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // helper to return a simple message for disallowed methods. returning a
 // 200 avoids confusing the client if it accidentally issues a GET/OPTIONS (the
@@ -30,22 +32,52 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    // payload can be plain array (legacy) or { bank?, questions? }
+    // payload can be one of:
+    //  - legacy array of questions
+    //  - object { questions, bank? }
+    //  - object { questions, banks: [...] } (new global backup)
     let questions: any[] = [];
+    // single bank info (old format)
     let bank: any | null = null;
+    // multiple banks info (new format)
+    let banks: any[] | null = null;
 
     if (Array.isArray(body)) {
       questions = body;
-    } else if (body && typeof body === "object" && Array.isArray((body as any).questions)) {
-      bank = (body as any).bank ?? null;
-      questions = (body as any).questions;
-    } else {
+    } else if (body && typeof body === "object") {
+      if (Array.isArray((body as any).banks)) {
+        banks = (body as any).banks;
+      }
+      if (Array.isArray((body as any).questions)) {
+        questions = (body as any).questions;
+      }
+      if ((body as any).bank) {
+        bank = (body as any).bank;
+      }
+    }
+
+    if (questions.length === 0 && !banks) {
       return NextResponse.json({ error: "Invalid restore payload" }, { status: 400 });
     }
 
     const supabase = createSupabaseAdminClient();
 
-    // if bank metadata included, create/upsert bank first
+    // upsert multiple banks first if provided
+    if (banks && banks.length > 0) {
+      for (const b of banks) {
+        if (b && b.id) {
+          await supabase.from("question_banks").upsert({
+            id: b.id,
+            title: b.title,
+            subject: b.subject ?? null,
+            target_classes: b.targetClasses ?? null,
+            owner_teacher_id: b.ownerTeacherId,
+          });
+        }
+      }
+    }
+
+    // if single bank metadata included (legacy) also upsert it
     if (bank && bank.id) {
       await supabase.from("question_banks").upsert({
         id: bank.id,

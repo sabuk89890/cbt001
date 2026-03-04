@@ -112,10 +112,25 @@ export default function QuestionBankPage() {
   const handleBackupAll = async () => {
     setBackupStatus('starting');
     try {
-      const res = await fetch('/api/questions');
-      const json = await res.json();
-      const data = json.data ?? [];
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // fetch all questions and all banks so the file contains everything
+      const [qRes, bRes] = await Promise.all([
+        fetch('/api/questions'),
+        fetch('/api/admin/question-banks'),
+      ]);
+      const qJson = await qRes.json();
+      const bJson = await bRes.json();
+
+      const questions = qJson.data ?? [];
+      const banks: any[] = (bJson.data ?? []).map((b: any) => ({
+        id: b.id,
+        title: b.title,
+        subject: b.subject,
+        targetClasses: b.target_classes ?? [],
+        ownerTeacherId: b.owner_teacher_id,
+      }));
+
+      const payload = { banks, questions };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

@@ -13,6 +13,8 @@ Starter project CBT (Computer Based Test) dengan Next.js App Router + TypeScript
 - API route untuk auth, bank soal, submit ujian, dan manual regrading
 - Fitur backup & restore soal (sekarang menyimpan metadata bank sehingga file
   bisa dipakai untuk memulihkan bank yang telah dihapus)
+  + tombol "Backup Soal" di halaman manajemen akan mengekspor seluruh bank dan
+    soal dalam satu file JSON; restore akan memulihkan baik bank maupun soal.
 - Manajemen pengguna guru/murid + tampilan siswa per kelas lengkap dengan foto
 
 ## Jalankan Lokal
