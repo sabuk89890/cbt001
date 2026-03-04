@@ -107,7 +107,10 @@ export default function QuestionBankPage() {
     void loadTeachers();
   }, []);
 
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
+
   const handleBackupAll = async () => {
+    setBackupStatus('starting');
     try {
       const res = await fetch('/api/questions');
       const json = await res.json();
@@ -116,13 +119,37 @@ export default function QuestionBankPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup-soal-${Date.now()}.json`;
+      a.download = `backup-soal-all-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setBackupStatus('done');
     } catch (e) {
       alert('Gagal membuat backup');
+      setBackupStatus('error');
+    }
+  };
+
+  const handleBackupBank = async (bankId: string, bankTitle: string) => {
+    setBackupStatus(`starting-${bankId}`);
+    try {
+      const res = await fetch('/api/questions');
+      const json = await res.json();
+      const data = (json.data ?? []).filter((q: any) => q.bankId === bankId);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-soal-${bankTitle.replace(/\s+/g,'_')}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setBackupStatus(`done-${bankId}`);
+    } catch (e) {
+      alert(`Gagal membuat backup untuk bank soal ${bankTitle}`);
+      setBackupStatus(`error-${bankId}`);
     }
   };
 
@@ -391,7 +418,23 @@ export default function QuestionBankPage() {
                   <p className="text-5xl font-semibold text-slate-700">{bank.questionCount}</p>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => handleBackupBank(bank.id, bank.title)}
+                    className="rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white"
+                  >
+                    Backup
+                  </button>
+                  {backupStatus === `starting-${bank.id}` && (
+                    <span className="text-xs text-blue-600">Downloading…</span>
+                  )}
+                  {backupStatus === `done-${bank.id}` && (
+                    <span className="text-xs text-green-600">Selesai</span>
+                  )}
+                  {backupStatus === `error-${bank.id}` && (
+                    <span className="text-xs text-red-600">Gagal</span>
+                  )}
                   <Link
                     href={`/admin/question-bank/${bank.id}`}
                     className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white"
