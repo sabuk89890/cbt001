@@ -18,6 +18,19 @@ const menuItems = [
 export default function GuruLayout({ children }: GuruLayoutProps) {
   const [subtitle, setSubtitle] = useState("Panel Guru");
   useEffect(() => {
+    // ensure user is logged in as guru, otherwise redirect to login page
+    try {
+      const raw = localStorage.getItem('auth:user');
+      const auth = raw ? JSON.parse(raw) : null;
+      if (!auth || auth.role !== 'guru') {
+        window.location.assign('/auth/guru');
+        return;
+      }
+    } catch {
+      window.location.assign('/auth/guru');
+      return;
+    }
+
     // Defensive cleanup kept only for dev-time issues; harmless otherwise
     function cleanupOverlays() {
       try {
@@ -77,6 +90,7 @@ export default function GuruLayout({ children }: GuruLayoutProps) {
       if (raw) {
         const auth = JSON.parse(raw);
         const name = auth?.fullName ?? auth?.username ?? auth?.id ?? "Guru";
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSubtitle(`Selamat Datang ${name}`);
       }
     } catch {}
@@ -122,7 +136,8 @@ export default function GuruLayout({ children }: GuruLayoutProps) {
       clearInterval(interval);
       clearTimeout(stopTimeout);
       observer.disconnect();
-      document.removeEventListener('pointerdown', pointerFixListener, { capture: true } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    document.removeEventListener('pointerdown', pointerFixListener, { capture: true } as any);
     };
   }, []);
   return (

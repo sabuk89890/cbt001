@@ -9,11 +9,25 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   const [subtitle, setSubtitle] = useState("Panel Siswa");
 
   useEffect(() => {
+    // redirect unauthenticated students back to login
+    try {
+      const raw = localStorage.getItem("auth:user");
+      const auth = raw ? JSON.parse(raw) : null;
+      if (!auth || auth.role !== 'student') {
+        window.location.assign('/auth/student');
+        return;
+      }
+    } catch {
+      window.location.assign('/auth/student');
+      return;
+    }
+
     try {
       const raw = localStorage.getItem("auth:user");
       if (raw) {
         const auth = JSON.parse(raw);
         const name = auth?.fullName ?? auth?.username ?? auth?.id ?? "Siswa";
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSubtitle(name);
       }
     } catch {}

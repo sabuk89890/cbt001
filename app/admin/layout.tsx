@@ -21,6 +21,19 @@ const menuItems = [
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
+    // redirect to login if not authenticated as admin
+    try {
+      const raw = localStorage.getItem('auth:user');
+      const auth = raw ? JSON.parse(raw) : null;
+      if (!auth || auth.role !== 'admin') {
+        window.location.assign('/auth/admin');
+        return;
+      }
+    } catch {
+      window.location.assign('/auth/admin');
+      return;
+    }
+
     function cleanupOverlays() {
       try {
         const hidden: string[] = [];
@@ -131,7 +144,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       clearInterval(interval);
       clearTimeout(stopTimeout);
       observer.disconnect();
-      document.removeEventListener('pointerdown', pointerFixListener, { capture: true } as any);
+      // cast required because TS expects different event handler type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    document.removeEventListener('pointerdown', pointerFixListener, { capture: true } as any);
     };
   }, []);
 
