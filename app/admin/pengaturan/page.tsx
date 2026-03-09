@@ -1,10 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PengaturanPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [requireExamBrowser, setRequireExamBrowser] = useState<boolean>(false);
+
+  // load current global settings on mount
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const j = await res.json();
+          setRequireExamBrowser(!!j.data?.requireExamBrowser);
+        }
+      } catch {};
+    })();
+  }, []);
 
   async function doBackup() {
     setLoading(true);
@@ -54,6 +68,32 @@ export default function PengaturanPage() {
           <p className="text-sm text-slate-600">Unduh snapshot JSON dari beberapa tabel penting.</p>
           <div className="mt-3">
             <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={doBackup} disabled={loading}>Buat Backup</button>
+          </div>
+        </section>
+
+        <section className="rounded border bg-white p-4 mb-4">
+          <h2 className="font-medium">Pengaturan Exambro</h2>
+          <p className="text-sm text-slate-600">Jika diaktifkan, siswa hanya dapat mengikuti ujian menggunakan aplikasi Exambro Android atau SafeExamBrowser di komputer; browser biasa akan ditolak.</p>
+          <div className="mt-3">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={requireExamBrowser}
+                onChange={async (e) => {
+                  const val = e.target.checked;
+                  setRequireExamBrowser(val);
+                  try {
+                    await fetch('/api/admin/settings', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'requireExamBrowser', value: val }),
+                    });
+                  } catch {}
+                }}
+                className="mr-2"
+              />
+              Aktifkan fitur Exambro
+            </label>
           </div>
         </section>
 

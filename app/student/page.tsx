@@ -29,6 +29,16 @@ export default function StudentLobbyPage() {
 
   const [sessions, setSessions] = useState<ExamSession[]>([]);
   const [banks, setBanks] = useState<any[]>([]);
+  const [requireExamBrowser, setRequireExamBrowser] = useState(false);
+
+  function isExamBrowserEnv() {
+    try {
+      const ua = navigator.userAgent || '';
+      return /Exambro|SafeExamBrowser/i.test(ua);
+    } catch {
+      return false;
+    }
+  }
   const [participantsMap, setParticipantsMap] = useState<Record<string, Participant | null>>({});
   const [submittedSessions, setSubmittedSessions] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +58,12 @@ export default function StudentLobbyPage() {
     async function load() {
       setIsLoading(true);
       try {
+        // fetch global settings as well
+        const settingsR = await fetch('/api/settings');
+        if (settingsR.ok) {
+          const sj = await settingsR.json();
+          setRequireExamBrowser(!!sj.data?.requireExamBrowser);
+        }
         const [r, b] = await Promise.all([
           fetch("/api/exams"),
           fetch("/api/admin/question-banks"),
@@ -211,27 +227,39 @@ export default function StudentLobbyPage() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {!didAttempt ? (
-                    <Link
-                      href={`/exam/${s.id}`}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium ${
-                        bankCount <= 0
-                          ? 'bg-red-100 text-red-600 cursor-not-allowed'
-                          : !isOngoing
-                          ? 'bg-slate-200 text-slate-700 cursor-not-allowed'
-                          : 'bg-blue-600 text-white'
-                      }`}
-                      onClick={(e) => {
-                        if (bankCount <= 0) {
-                          e.preventDefault();
-                          alert('Soal belum tersedia untuk sesi ini. Hubungi pengajar.');
-                        } else if (!isOngoing) {
-                          e.preventDefault();
-                          alert('Ujian belum dimulai.');
-                        }
-                      }}
-                    >
-                      Kerjakan
-                    </Link>
+                    <>
+                      <Link
+                        href={`/exam/${s.id}`}
+                        className={`rounded-lg px-3 py-2 text-xs font-medium ${
+                          bankCount <= 0
+                            ? 'bg-red-100 text-red-600 cursor-not-allowed'
+                            : !isOngoing
+                            ? 'bg-slate-200 text-slate-700 cursor-not-allowed'
+                            : requireExamBrowser && !isExamBrowserEnv()
+                            ? 'bg-yellow-100 text-yellow-600 cursor-not-allowed'
+                            : 'bg-blue-600 text-white'
+                        }`}
+                        onClick={(e) => {
+                          if (bankCount <= 0) {
+                            e.preventDefault();
+                            alert('Soal belum tersedia untuk sesi ini. Hubungi pengajar.');
+                          } else if (!isOngoing) {
+                            e.preventDefault();
+                            alert('Ujian belum dimulai.');
+                          } else if (requireExamBrowser && !isExamBrowserEnv()) {
+                            e.preventDefault();
+                            alert('Fitur Exambro diaktifkan, silakan gunakan Exambro/SEB.');
+                          }
+                        }}
+                      >
+                        Kerjakan
+                      </Link>
+                      {requireExamBrowser && !isExamBrowserEnv() && (
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Ujian hanya bisa dijalankan dari Exambro/SEB.
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <Link href="/score" className="rounded-lg bg-amber-500 px-3 py-2 text-xs text-white">Lihat Nilai</Link>
                   )}

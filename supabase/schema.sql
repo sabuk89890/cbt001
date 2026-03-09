@@ -112,6 +112,18 @@ begin
   end if;
 end $$;
 
+
+-- global key/value settings so administrators can toggle features without
+-- needing to modify code or environment variables. the value field is
+-- jsonb allowing structured flags such as { "requireExamBrowser": true }.
+create table if not exists public.system_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists system_settings_key_idx on public.system_settings(key);
+
 create table if not exists public.exam_sessions (
   id text primary key,
   title text,

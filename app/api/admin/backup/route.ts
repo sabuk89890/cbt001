@@ -11,8 +11,9 @@ export async function GET() {
     const { data: exam_sessions } = await supabase.from('exam_sessions').select('*');
     const { data: exam_participants } = await supabase.from('exam_participants').select('*');
     const { data: exam_submissions } = await supabase.from('exam_submissions').select('*');
+    const { data: system_settings } = await supabase.from('system_settings').select('*');
 
-    return NextResponse.json({ profiles, question_banks, questions, exam_sessions, exam_participants, exam_submissions });
+    return NextResponse.json({ profiles, question_banks, questions, exam_sessions, exam_participants, exam_submissions, system_settings });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
@@ -41,6 +42,9 @@ export async function POST(request: Request) {
     }
     if (body.exam_submissions) {
       for (const es of body.exam_submissions) await supabase.from('exam_submissions').upsert(es, { onConflict: 'id' });
+    }
+    if (body.system_settings) {
+      for (const ss of body.system_settings) await supabase.from('system_settings').upsert(ss, { onConflict: 'key' });
     }
 
     return NextResponse.json({ data: { ok: true } });

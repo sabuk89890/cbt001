@@ -9,6 +9,15 @@ type ExamSessionPageProps = { params: Promise<{ id: string }> };
 
 export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const [sessionId, setSessionId] = useState("");
+
+  function isExamBrowserEnv() {
+    try {
+      const ua = navigator.userAgent || '';
+      return /Exambro|SafeExamBrowser/i.test(ua);
+    } catch {
+      return false;
+    }
+  }
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [confirmationVisible, setConfirmationVisible] = useState(true);
@@ -57,6 +66,19 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
           setIsLoading(false);
           return;
         }
+
+        // check global exambro setting before anything else
+        try {
+          const setRes = await fetch('/api/settings');
+          if (setRes.ok) {
+            const sj = await setRes.json();
+            if (sj.data?.requireExamBrowser && !isExamBrowserEnv()) {
+              setStartError('Fitur Exambro diaktifkan; silakan gunakan Exambro/SEB.');
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch {}
 
         if (!mounted) return;
         setSessionInfo(session);
