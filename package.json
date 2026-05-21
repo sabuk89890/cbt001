@@ -7,14 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "migrate:supabase": "node ./scripts/run-supabase-migration.js"
+    "migrate:supabase": "node ./scripts/run-supabase-migration.js",
+    "start:local": "node ./scripts/start-local.js",
+    "start:local:install": "node ./scripts/start-local.js --install",
+    "start:local:migrate": "node ./scripts/start-local.js --migrate"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
     "pg": "^8.11.1",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "dotenv": "^16.1.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

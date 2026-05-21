@@ -1,0 +1,1 @@
+{"bank":{"id":"a6ff330b-0254-4416-b2a1-fe5b422b4416","title":"Test Bank","subject":"Math","targetClasses":["9A"],"ownerTeacherId":"00000000-0000-0000-0000-000000000000"},"questions":[{"id":"q3","bankId":"a6ff330b-0254-4416-b2a1-fe5b422b4416","subject":null,"prompt":"x","questionType":"multiple-choice","options":[],"correctAnswer":"","answerKey":{},"maxScore":1}]}
