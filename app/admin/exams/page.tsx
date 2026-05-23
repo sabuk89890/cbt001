@@ -233,32 +233,45 @@ export default function AdminExamsPage() {
     } else {
       setSelectedClasses([]);
     }
+    // helper: format as local date/time for inputs (avoid UTC toISOString shifts)
+    function toLocalDateISO(dt: Date) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const d = String(dt.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    function toLocalTime(dt: Date) {
+      const hh = String(dt.getHours()).padStart(2, '0');
+      const mm = String(dt.getMinutes()).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+
     // starts/ends: prefer columns, fallback to settings
     if (session.starts_at) {
       const dt = new Date(session.starts_at);
-      setStartsDate(dt.toISOString().slice(0,10));
-      setStartsTime(dt.toISOString().slice(11,16));
+      setStartsDate(toLocalDateISO(dt));
+      setStartsTime(toLocalTime(dt));
     } else if (s.startsAt) {
       const dt = new Date(s.startsAt);
-      setStartsDate(dt.toISOString().slice(0,10));
-      setStartsTime(dt.toISOString().slice(11,16));
+      setStartsDate(toLocalDateISO(dt));
+      setStartsTime(toLocalTime(dt));
     } else { setStartsDate(null); setStartsTime(null); }
 
     if (session.ends_at) {
       const dt = new Date(session.ends_at);
-      setEndsDate(dt.toISOString().slice(0,10));
-      setEndsTime(dt.toISOString().slice(11,16));
+      setEndsDate(toLocalDateISO(dt));
+      setEndsTime(toLocalTime(dt));
     } else if (s.endsAt) {
       const dt = new Date(s.endsAt);
-      setEndsDate(dt.toISOString().slice(0,10));
-      setEndsTime(dt.toISOString().slice(11,16));
+      setEndsDate(toLocalDateISO(dt));
+      setEndsTime(toLocalTime(dt));
     } else if (session.starts_at && (session.duration_minutes ?? session.settings?.durationMinutes)) {
       // derive end from start + duration when explicit end missing
       const d = new Date(session.starts_at);
       const dur = session.duration_minutes ?? session.settings?.durationMinutes ?? 0;
       d.setMinutes(d.getMinutes() + Number(dur));
-      setEndsDate(d.toISOString().slice(0,10));
-      setEndsTime(d.toISOString().slice(11,16));
+      setEndsDate(toLocalDateISO(d));
+      setEndsTime(toLocalTime(d));
     } else { setEndsDate(null); setEndsTime(null); }
 
     // duration

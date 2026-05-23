@@ -1,0 +1,21 @@
+(Local development and deploy helper)
+
+(1) Copy environment template and fill values:
+	- PowerShell: `copy .env.example .env.local`
+	- macOS/Linux: `cp .env.example .env.local`
+
+(2) Start local dev server (optionally install deps and run migrations):
+	- Install deps: `npm ci`
+	- Run migrations: `npm run migrate:supabase`
+	- Start dev: `npm run dev`
+	- Or use automation: `npm run start:local` (or `npm run start:local:install`, `npm run start:local:migrate`)
+
+(3) Required env variables (see `.env.example`):
+	- NEXT_PUBLIC_SUPABASE_URL
+	- NEXT_PUBLIC_SUPABASE_ANON_KEY
+	- SUPABASE_SERVICE_ROLE_KEY
+	- (Optional for migrations) DATABASE_URL or SUPABASE_DB_URL
+
+(4) Notes:
+	- Ensure `SUPABASE_SERVICE_ROLE_KEY` is never exposed to client-side bundles.
+	- If port 3000 is busy, stop the occupying process or set `PORT` env var.

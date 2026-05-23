@@ -111,18 +111,24 @@ export default function EssayGradeButton({ sessionId, submissionId, studentName 
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         disabled={buttonDisabled}
         title={buttonDisabled ? 'Tidak ada soal essay pada submission ini' : undefined}
-        className={`rounded-full ${buttonDisabled ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-rose-600 text-white'} px-4 py-2 text-sm shadow-sm hover:!bg-rose-700 transition`}
+        aria-label={`Nilai Essay ${studentName ?? ''}`}
+        className={`rounded-full ${buttonDisabled ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-rose-600 text-white cursor-pointer'} px-4 py-2 text-sm shadow-sm hover:!bg-rose-700 transition`}
       >
         Nilai Essay
       </button>
 
-      {open ? createPortal(
+      {open && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-start justify-center p-6">
           <div className="absolute inset-0 z-[9998] bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative z-[10000] w-full max-w-4xl overflow-auto rounded-lg bg-white shadow-xl">
+          <div
+            className="relative z-[10000] w-full max-w-4xl rounded-lg bg-white shadow-xl"
+            style={{ maxHeight: 'calc(100vh - 4rem)', overflow: 'auto' }}
+            onWheel={(e) => { const t = e.currentTarget as HTMLDivElement; t.scrollTop += e.deltaY; }}
+          >
             <div className="flex items-center justify-between border-b px-6 py-4">
               <div>
                 <h3 className="text-lg font-semibold">Penilaian soal essay</h3>
@@ -185,7 +191,7 @@ export default function EssayGradeButton({ sessionId, submissionId, studentName 
           </div>
         </div>,
         document.body
-      ) : null}
+      )}
     </>
   );
 }

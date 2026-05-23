@@ -426,7 +426,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   if (confirmationVisible && !isLoading && !participantId && sessionInfo) {
     // show confirmation dialog prior to starting exam
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-100">
+      <div className="flex items-center justify-center min-h-screen bg-slate-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
           <h2 className="text-xl font-semibold mb-4">Konfirmasi Tes</h2>
           <p className="text-sm">Nama Tes</p>
@@ -485,6 +485,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
         backgroundRepeat: 'no-repeat',
         backgroundColor: 'rgba(0,0,0,0.22)',
         backgroundBlendMode: 'multiply',
+        paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)'
       }}
     >
       {/* page header (site header is from layout) */}
