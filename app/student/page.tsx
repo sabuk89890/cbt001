@@ -157,7 +157,7 @@ export default function StudentLobbyPage() {
     };
   }, [studentId]);
 
-  const now = useMemo(() => new Date(), []);
+  const now = new Date();
 
   function formatTime(iso?: string | null) {
     if (!iso) return "-";
