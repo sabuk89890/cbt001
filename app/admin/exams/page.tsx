@@ -364,7 +364,7 @@ export default function AdminExamsPage() {
   async function simulateStart(sessionId: string) {
     const studentId = prompt('Masukkan student_id (uuid) untuk simulasi start');
     if (!studentId) return;
-    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId }) });
+    const res = await fetch(`/api/exams/${sessionId}/participants/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId, asAdmin: true }) });
     const json = await res.json();
     if (!res.ok) {
       alert(json.error ?? 'Gagal memulai peserta');

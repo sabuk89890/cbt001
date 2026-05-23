@@ -48,6 +48,16 @@ export async function POST(request: Request, context: RouteContext) {
       if (now > ends) return NextResponse.json({ error: 'Waktu ujian telah berakhir' }, { status: 400 });
     }
 
+    // token validation: if session has a token configured, require correct token
+    const configuredToken = session.settings && session.settings.token ? String(session.settings.token) : null;
+    const providedToken = body && body.token ? String(body.token) : null;
+    const asAdmin = body && body.asAdmin === true;
+    if (configuredToken && !asAdmin) {
+      if (!providedToken || providedToken !== configuredToken) {
+        return NextResponse.json({ error: 'Token salah' }, { status: 401 });
+      }
+    }
+
     // fetch candidate questions for bank
     const { data: questions } = await supabase
       .from("questions")
