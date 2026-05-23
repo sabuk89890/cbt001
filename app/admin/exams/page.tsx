@@ -92,9 +92,33 @@ export default function AdminExamsPage() {
     function combine(date: string | null, time: string | null) {
       if (!date) return null;
       if (!time) return null;
-      // combine to local ISO
+      // normalize time: accept `HH:MM` (24h) or `hh:MM AM/PM`
       try {
-        const dt = new Date(`${date}T${time}`);
+        const t = String(time).trim();
+        // match 12-hour with AM/PM
+        const ampm = t.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+        let hours: number;
+        let mins: number;
+        if (ampm) {
+          hours = Number(ampm[1]);
+          mins = Number(ampm[2]);
+          const isPm = ampm[3].toLowerCase() === 'pm';
+          if (hours === 12) hours = isPm ? 12 : 0;
+          else if (isPm) hours = (hours + 12) % 24;
+        } else {
+          // assume 24h HH:MM
+          const m = t.match(/^(\d{1,2}):(\d{2})$/);
+          if (!m) return null;
+          hours = Number(m[1]);
+          mins = Number(m[2]);
+        }
+
+        // build a Date in local timezone
+        const [y, mo, d] = date.split('-').map((v) => Number(v));
+        if ([y, mo, d].some((n) => Number.isNaN(n))) return null;
+        const dt = new Date();
+        dt.setFullYear(y, mo - 1, d);
+        dt.setHours(hours, mins, 0, 0);
         return dt.toISOString();
       } catch (e) {
         return null;

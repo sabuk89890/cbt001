@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const { data: session, error: sessErr } = await supabase
       .from("exam_sessions")
-      .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
       .eq("id", id)
       .single();
 
@@ -99,13 +99,36 @@ export async function PATCH(request: Request, context: RouteContext) {
       update.bank_id = body.bankId;
     }
     if (body.startsAt !== undefined) update.starts_at = body.startsAt ? new Date(body.startsAt) : null;
+    if (body.endsAt !== undefined) update.ends_at = body.endsAt ? new Date(body.endsAt) : null;
     if (body.durationMinutes !== undefined) update.duration_minutes = body.durationMinutes === null ? null : Number(body.durationMinutes);
     if (body.settings !== undefined) update.settings = body.settings;
     if (body.isActive !== undefined) update.is_active = body.isActive;
 
-    const { data, error } = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, duration_minutes, settings, is_active').single();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    let data: any = null;
+    try {
+      const res = await supabase.from('exam_sessions').update(update).eq('id', id).select('id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active').single();
+      if (res.error) throw res.error;
+      data = res.data;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // fallback for old schemas without ends_at/target_classes columns: store endsAt in settings
+      if (/ends?_at/.test(msg) || /column .* does not exist/.test(msg)) {
+        try {
+          // fetch existing row to merge settings
+          const cur = await supabase.from('exam_sessions').select('settings').eq('id', id).single();
+          const curSettings = (cur.data && cur.data.settings) ? cur.data.settings : {};
+          const nextSettings = { ...curSettings, ...(update.settings ?? {}) };
+          if (body.endsAt !== undefined) nextSettings.endsAt = body.endsAt;
+          const r2 = await supabase.from('exam_sessions').update({ settings: nextSettings }).eq('id', id).select('id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active').single();
+          if (r2.error) return NextResponse.json({ error: r2.error.message }, { status: 500 });
+          data = r2.data;
+        } catch (e2) {
+          return NextResponse.json({ error: String(e2) }, { status: 500 });
+        }
+      } else {
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+    }
 
     return NextResponse.json({ data }, { status: 200 });
   } catch (err) {

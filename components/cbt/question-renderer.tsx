@@ -139,7 +139,8 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       }}
     >
       <legend className="font-medium">
-        {index + 1}. {question.prompt}
+        <span>{index + 1}. </span>
+        <span className="whitespace-pre-wrap">{question.prompt}</span>
       </legend>
       {imageUrl ? (
         <>
@@ -237,7 +238,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                   onChange={() => onChange?.(option)}
                   disabled={readOnly}
                 />
-                {option}
+                <span className="whitespace-pre-wrap break-words">{option}</span>
               </label>
             );
           })}
@@ -262,7 +263,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                     onChange?.(next);
                   }}
                 />
-                {option}
+                <span className="whitespace-pre-wrap break-words">{option}</span>
               </label>
             );
           })}
@@ -283,13 +284,13 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       {question.questionType === "true-false" ? (
         normalizeTrueFalseStatements(question.answerKey.statements).length > 0 ? (
           <div className="space-y-2">
-            {normalizeTrueFalseStatements(question.answerKey.statements).map((statement) => {
+              {normalizeTrueFalseStatements(question.answerKey.statements).map((statement) => {
               const currentAnswers = normalizeTrueFalseStatements(value);
               const selected = currentAnswers.find((item) => item.text === statement.text);
 
               return (
                 <div key={statement.text} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px]">
-                  <p className="rounded-md border px-3 py-2 text-sm">{statement.text}</p>
+                  <p className="rounded-md border px-3 py-2 text-sm whitespace-pre-wrap">{statement.text}</p>
                   <select
                     value={selected ? (selected.isTrue ? "Benar" : "Salah") : ""}
                     disabled={readOnly}
@@ -322,7 +323,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
           </div>
         ) : (
           <div className="space-y-1">
-            {["Benar", "Salah"].map((option) => {
+            {['Benar', 'Salah'].map((option) => {
               const selected =
                 (typeof value === "boolean" && ((option === "Benar" && value) || (option === "Salah" && !value))) ||
                 value === option;
@@ -336,7 +337,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
                     onChange={() => onChange?.(option)}
                     disabled={readOnly}
                   />
-                  {option}
+                  <span className="whitespace-pre-wrap">{option}</span>
                 </label>
               );
             })}

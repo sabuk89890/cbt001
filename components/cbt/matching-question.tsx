@@ -126,7 +126,7 @@ export default function MatchingQuestion({
                     // toggle selection for matching
                     setSelectedLeft((prev) => (prev === left ? null : left));
                   }}
-                  className={`rounded-md border px-3 py-2 text-sm cursor-pointer transition-all ${paired ? "shadow-inner" : "hover:shadow"} ${isSelected ? 'ring-2 ring-offset-1 ring-sky-400 bg-sky-50' : ''}`}
+                  className={`rounded-md border px-3 py-2 text-sm cursor-pointer transition-all whitespace-pre-wrap break-words ${paired ? "shadow-inner" : "hover:shadow"} ${isSelected ? 'ring-2 ring-offset-1 ring-sky-400 bg-sky-50' : ''}`}
                   style={paired ? { background: color, color: "white" } : {}}
                 >
                   {left}
@@ -181,7 +181,7 @@ export default function MatchingQuestion({
                       const unpairedLeft = leftItems.find((l) => !pairs.find((p) => p.left === l));
                       if (unpairedLeft) pairLeftToRight(unpairedLeft, right);
                     }}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${paired ? "shadow-inner" : "hover:shadow"}`}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer whitespace-pre-wrap break-words ${paired ? "shadow-inner" : "hover:shadow"}`}
                     style={paired ? { background: color, color: "white" } : {}}
                   >
                     {right}

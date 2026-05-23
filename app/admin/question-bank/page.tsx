@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { QuestionRenderer } from '@/components/cbt/question-renderer';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type TeacherOption = {
@@ -108,6 +109,9 @@ export default function QuestionBankPage() {
   }, []);
 
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [previewBank, setPreviewBank] = useState<QuestionBank | null>(null);
+  const [previewQuestions, setPreviewQuestions] = useState<any[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const handleBackupAll = async () => {
     setBackupStatus('starting');
@@ -492,6 +496,26 @@ export default function QuestionBankPage() {
                   </Link>
                   <button
                     type="button"
+                    onClick={async () => {
+                      // load questions for this bank and open preview modal
+                      try {
+                        const res = await fetch('/api/questions');
+                        const json = await res.json();
+                        const all = json.data ?? [];
+                        const items = all.filter((q: any) => q.bankId === bank.id);
+                        setPreviewQuestions(items);
+                        setPreviewBank(bank);
+                        setIsPreviewOpen(true);
+                      } catch (e) {
+                        alert('Gagal memuat soal untuk preview');
+                      }
+                    }}
+                    className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white"
+                  >
+                    Preview
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleStartEdit(bank)}
                     className="rounded-lg border border-slate-300 px-3 py-2 text-xs"
                   >
@@ -653,6 +677,33 @@ export default function QuestionBankPage() {
                   {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isPreviewOpen ? (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-slate-900/40 p-6">
+            <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Preview Tampilan Siswa — {previewBank?.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {previewQuestions.length === 0 ? (
+                  <p className="text-sm text-slate-500">Tidak ada soal pada bank ini.</p>
+                ) : (
+                  previewQuestions.map((q: any, i: number) => (
+                    <QuestionRenderer key={q.id} index={i} question={q} value={undefined} readOnly />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         ) : null}

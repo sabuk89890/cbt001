@@ -64,11 +64,11 @@ export default function EditQuestionPage() {
           </div>
           <div>
             <label className="block text-sm">Prompt</label>
-            <textarea name="prompt" defaultValue={data.prompt} className="input" />
+            <textarea name="prompt" defaultValue={data.prompt} className="input w-full" rows={6} />
           </div>
           <div>
             <label className="block text-sm">Options (JSON)</label>
-            <textarea name="options" defaultValue={JSON.stringify(data.options || [])} className="input" />
+            <textarea name="options" defaultValue={JSON.stringify(data.options || [])} className="input w-full" rows={8} />
           </div>
           <div>
             <label className="block text-sm">Upload Gambar (opsional, max 100KB)</label>

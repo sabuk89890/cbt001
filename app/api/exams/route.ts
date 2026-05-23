@@ -99,7 +99,7 @@ export async function GET() {
     // first, fetch all sessions for inspection
     let { data, error } = await supabase
       .from("exam_sessions")
-      .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -128,7 +128,7 @@ export async function GET() {
       // refetch after applying updates
       const r2 = await supabase
         .from("exam_sessions")
-        .select("id, title, bank_id, starts_at, duration_minutes, settings, is_active")
+        .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
         .order("created_at", { ascending: false });
       if (!r2.error) data = r2.data;
     }

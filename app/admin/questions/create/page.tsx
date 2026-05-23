@@ -62,11 +62,11 @@ export default function CreateQuestionPage() {
           </div>
           <div>
             <label className="block text-sm">Prompt</label>
-            <textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} className="input" />
+            <textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} className="input w-full" rows={6} />
           </div>
           <div>
             <label className="block text-sm">Options (JSON)</label>
-            <textarea value={optionsJson} onChange={(e)=>setOptionsJson(e.target.value)} className="input" />
+            <textarea value={optionsJson} onChange={(e)=>setOptionsJson(e.target.value)} className="input w-full" rows={8} />
           </div>
           <div>
             <label className="block text-sm">Upload Gambar (opsional, max 100KB)</label>
