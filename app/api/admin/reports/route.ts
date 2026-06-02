@@ -28,7 +28,17 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false });
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-      const studentIds = Array.from(new Set((data ?? []).map((r:any)=>r.student_id).filter(Boolean)));
+      // deduplicate submissions by student_id, keeping the latest (data already ordered desc)
+      const seen = new Set<string>();
+      const deduped = [] as any[];
+      for (const row of (data ?? [])) {
+        if (!row || !row.student_id) continue;
+        if (seen.has(row.student_id)) continue;
+        seen.add(row.student_id);
+        deduped.push(row);
+      }
+
+      const studentIds = Array.from(new Set(deduped.map((r:any)=>r.student_id).filter(Boolean)));
       let profiles: any[] = [];
       if (studentIds.length > 0) {
         const p = await supabase.from('profiles').select('id, full_name, class_name').in('id', studentIds);
@@ -36,7 +46,7 @@ export async function GET(request: Request) {
       }
 
       // fetch related participant timings so we can compute duration per submission
-      const sessionIds = Array.from(new Set((data ?? []).map((r:any)=>r.session_id).filter(Boolean)));
+      const sessionIds = Array.from(new Set(deduped.map((r:any)=>r.session_id).filter(Boolean)));
       let participants: any[] = [];
       if (sessionIds.length && studentIds.length) {
         const pRes = await supabase
@@ -49,7 +59,7 @@ export async function GET(request: Request) {
 
       const partMap = new Map((participants ?? []).map((x:any) => [`${x.session_id}::${x.student_id}`, x]));
 
-      let rows = (data ?? []).map((r:any) => {
+      let rows = (deduped ?? []).map((r:any) => {
         const prof = profiles.find((p) => p.id === r.student_id) ?? null;
         const key = `${r.session_id}::${r.student_id}`;
         const part = partMap.get(key) ?? null;
