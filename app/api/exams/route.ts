@@ -140,6 +140,7 @@ export async function GET(request: Request) {
     // - sessions where target_classes (column or settings.targetClasses) is empty (available to all), OR
     // - sessions where target_classes includes the student's class_name, OR
     // - sessions where the student already has a participant record (started previously)
+    const debug = url.searchParams.get('debug') === '1';
     if (studentId && Array.isArray(data)) {
       // fetch student's class
       const { data: profile } = await supabase.from('profiles').select('id, class_name').eq('id', studentId).maybeSingle();
@@ -162,6 +163,20 @@ export async function GET(request: Request) {
         if (studentClass && targets.includes(studentClass)) return true;
         return false;
       });
+
+      if (debug) {
+        return NextResponse.json({
+          data: filtered,
+          debug: {
+            studentId,
+            studentClass,
+            totalSessions: (data ?? []).length,
+            participantSessionIds: Array.from(participantSessionIds),
+            submissionSessionIds: (subs ?? []).map((s:any) => s.session_id),
+            matchedSessionIds: filtered.map((s:any) => s.id),
+          }
+        });
+      }
 
       return NextResponse.json({ data: filtered });
     }
