@@ -53,26 +53,34 @@ export async function POST(request: Request, context: RouteContext) {
 
     // also record an exam_submissions row so reports include this forced stop
     try {
-      // avoid duplicate submission if one already exists for this session+student
+      // create or update an exam_submissions row so reports include this forced stop
       if (participant.student_id) {
-        const existing = await supabase.from('exam_submissions').select('id').eq('session_id', participant.session_id).eq('student_id', participant.student_id).maybeSingle();
-        if (!existing.data) {
-          await supabase.from('exam_submissions').insert({
-            session_id: participant.session_id,
-            student_id: participant.student_id,
-            answers: participant.answers ?? {},
-            score: percentageScore,
-            status: computeStatusFromPercentage(percentageScore),
-            auto_score: percentageScore,
-            manual_adjustment: 0,
-            grading_detail: gradingDetails,
-            needs_manual_review: gradingDetails.some((d:any) => d.needsManualReview),
-            review_status: gradingDetails.some((d:any) => d.needsManualReview) ? 'auto' : 'reviewed',
-          });
+        const matchCond = { session_id: participant.session_id, student_id: participant.student_id };
+        const existing = await supabase.from('exam_submissions').select('id').match(matchCond).limit(1).maybeSingle();
+
+        const payload = {
+          session_id: participant.session_id,
+          student_id: participant.student_id,
+          answers: participant.answers ?? {},
+          score: percentageScore,
+          status: computeStatusFromPercentage(percentageScore),
+          auto_score: percentageScore,
+          manual_adjustment: 0,
+          grading_detail: gradingDetails,
+          needs_manual_review: gradingDetails.some((d:any) => d.needsManualReview),
+          review_status: gradingDetails.some((d:any) => d.needsManualReview) ? 'auto' : 'reviewed',
+          created_at: new Date().toISOString(),
+        };
+
+        if (existing && existing.data && existing.data.id) {
+          await supabase.from('exam_submissions').update(payload).eq('id', existing.data.id);
+        } else {
+          await supabase.from('exam_submissions').insert(payload);
         }
       }
     } catch (e) {
-      // non-fatal: continue even if submission insert fails
+      // non-fatal: continue even if submission insert/update fails, but surface to logs
+      console.error('force-stop: failed to insert/update exam_submissions', e);
     }
 
     return NextResponse.json({ data: { participantId, score: percentageScore } });
