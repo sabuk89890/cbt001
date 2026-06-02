@@ -8,6 +8,7 @@ type ExamSession = {
   title: string;
   bank_id?: string | null;
   starts_at?: string | null;
+  ends_at?: string | null;
   duration_minutes?: number | null;
   settings?: any;
   is_active?: boolean;
