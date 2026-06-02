@@ -30,6 +30,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const [unsureSet, setUnsureSet] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [message, setMessage] = useState("");
   const [submitConfirmVisible, setSubmitConfirmVisible] = useState(false);
   const [submitConfirmMessage, setSubmitConfirmMessage] = useState("");
@@ -372,7 +373,9 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const handleJumpTo = (index: number) => setCurrentIndex(index);
 
   const submitAnswers = async (sid: string, studentId?: string | null) => {
+    if (isSubmittingRef.current) return; // prevent double submit
     setIsSubmitting(true);
+    isSubmittingRef.current = true;
     setMessage('');
     try {
       const res = await fetch(`/api/exams/${sid}/submit`, {
@@ -384,6 +387,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
       if (!res.ok) {
         setMessage(payload.error ?? 'Gagal mengumpulkan');
         setIsSubmitting(false);
+        isSubmittingRef.current = false;
         return;
       }
       setMessage(`Terkumpul • Nilai: ${payload.score ?? '-'} • Submission: ${payload.submissionId ?? '-'}`);
@@ -392,6 +396,7 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
     } catch (err) {
       setMessage('Gagal mengumpulkan ujian');
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -572,9 +577,9 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
               <button onClick={handlePrevious} disabled={currentIndex === 0} className="rounded-full bg-rose-400 px-5 py-3 text-sm text-white disabled:opacity-50">Soal Sebelumnya</button>
               <button onClick={() => toggleUnsure(currentQuestion.id)} className={`rounded-full px-5 py-3 text-sm ${unsureSet[currentQuestion.id] ? 'bg-amber-400 text-white' : 'bg-amber-100 text-slate-700'}`}>Ragu-Ragu</button>
               {currentIndex < questions.length - 1 ? (
-                <button onClick={handleNext} className="rounded-full bg-blue-600 px-5 py-3 text-sm text-white">Selanjutnya</button>
+                <button onClick={handleNext} className="rounded-full bg-blue-600 px-5 py-3 text-sm text-white" disabled={isSubmitting}>Selanjutnya</button>
               ) : (
-                <button onClick={handleSubmitConfirm} className="rounded-full bg-emerald-600 px-5 py-3 text-sm text-white">Kumpulkan</button>
+                <button onClick={handleSubmitConfirm} className="rounded-full bg-emerald-600 px-5 py-3 text-sm text-white" disabled={isSubmitting}>Kumpulkan</button>
               )}
             </div>
           ) : null}

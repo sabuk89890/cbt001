@@ -82,22 +82,64 @@ export async function POST(request: Request, context: RouteContext) {
 			return NextResponse.json({ error: sessionError.message }, { status: 500 });
 		}
 
-		const { data: submission, error: submissionError } = await supabase
-			.from("exam_submissions")
-			.insert({
-				session_id: id,
-				student_id: body.studentId ?? null,
-				answers: body.answers,
-				score,
-				status,
-				auto_score: score,
-				manual_adjustment: 0,
-				grading_detail: details,
-				needs_manual_review: needsManualReview,
-				review_status: needsManualReview ? "auto" : "reviewed",
-			})
-			.select("id, created_at")
-			.single();
+		let submission: any = null;
+		let submissionError: any = null;
+
+		const payload = {
+			session_id: id,
+			student_id: body.studentId ?? null,
+			answers: body.answers,
+			score,
+			status,
+			auto_score: score,
+			manual_adjustment: 0,
+			grading_detail: details,
+			needs_manual_review: needsManualReview,
+			review_status: needsManualReview ? "auto" : "reviewed",
+		};
+
+		try {
+			if (body.studentId) {
+				// try to find an existing submission for this session+student and update it (avoid duplicates)
+				const { data: existing } = await supabase
+					.from('exam_submissions')
+					.select('id')
+					.match({ session_id: id, student_id: body.studentId })
+					.order('created_at', { ascending: false })
+					.limit(1)
+					.maybeSingle();
+
+				if (existing && existing.id) {
+					const { data: up, error: upErr } = await supabase
+						.from('exam_submissions')
+						.update(payload)
+						.eq('id', existing.id)
+						.select('id, created_at')
+						.single();
+					submission = up;
+					submissionError = upErr;
+				} else {
+					const { data: ins, error: insErr } = await supabase
+						.from('exam_submissions')
+						.insert(payload)
+						.select('id, created_at')
+						.single();
+					submission = ins;
+					submissionError = insErr;
+				}
+			} else {
+				const { data: ins, error: insErr } = await supabase
+					.from('exam_submissions')
+					.insert(payload)
+					.select('id, created_at')
+					.single();
+				submission = ins;
+				submissionError = insErr;
+			}
+		} catch (e) {
+			submission = null;
+			submissionError = e;
+		}
 
 		if (submissionError) {
 			return NextResponse.json({ error: submissionError.message }, { status: 500 });
