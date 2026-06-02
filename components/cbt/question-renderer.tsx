@@ -104,35 +104,33 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
       className="space-y-2 rounded-lg border p-4 select-none"
       onCopy={(e) => {
         const t = e.target as HTMLElement | null;
-        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
+        if (isInteractive) return;
         e.preventDefault();
       }}
       onCut={(e) => {
         const t = e.target as HTMLElement | null;
-        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
+        if (isInteractive) return;
         e.preventDefault();
       }}
       onContextMenu={(e) => {
         const t = e.target as HTMLElement | null;
-        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
+        if (isInteractive) return;
         e.preventDefault();
       }}
       // prevent mouse drag selection of non-input areas (allow selects too)
       onMouseDown={(e) => {
         const t = e.target as HTMLElement | null;
-        if (
-          t &&
-          (t.tagName === 'INPUT' ||
-            t.tagName === 'TEXTAREA' ||
-            t.tagName === 'SELECT' ||
-            t.isContentEditable)
-        )
-          return;
+        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
+        if (isInteractive) return;
         e.preventDefault();
       }}
       onKeyDown={(e) => {
         const t = e.target as HTMLElement | null;
-        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
+        if (isInteractive) return;
         if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'a')) {
           e.preventDefault();
         }
