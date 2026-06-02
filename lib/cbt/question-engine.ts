@@ -612,5 +612,7 @@ export function calculatePercentage(totalScore: number, totalMaxScore: number) {
     return 0;
   }
 
-  return Math.round((totalScore / totalMaxScore) * 100);
+  const raw = Math.round((totalScore / totalMaxScore) * 100);
+  // ensure percentage is within 0-100 even if scores exceed expected max
+  return clamp(raw, 0, 100);
 }
