@@ -120,13 +120,7 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
         if (isInteractive) return;
         e.preventDefault();
       }}
-      // prevent mouse drag selection of non-input areas (allow selects too)
-      onMouseDown={(e) => {
-        const t = e.target as HTMLElement | null;
-        const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
-        if (isInteractive) return;
-        e.preventDefault();
-      }}
+      // prevent mouse drag selection of non-input areas is handled via CSS `select-none`.
       onKeyDown={(e) => {
         const t = e.target as HTMLElement | null;
         const isInteractive = t && t.closest && Boolean(t.closest('input,textarea,select,[contenteditable]'));
