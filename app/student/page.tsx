@@ -65,8 +65,9 @@ export default function StudentLobbyPage() {
           const sj = await settingsR.json();
           setRequireExamBrowser(!!sj.data?.requireExamBrowser);
         }
+        const currentStudentId = studentId || JSON.parse(localStorage.getItem('auth:user') || '{}')?.id;
         const [r, b] = await Promise.all([
-          fetch("/api/exams"),
+          fetch(`/api/exams${currentStudentId ? `?studentId=${encodeURIComponent(currentStudentId)}` : ''}`),
           fetch("/api/admin/question-banks"),
         ]);
         const payload = await r.json();

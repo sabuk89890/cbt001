@@ -93,13 +93,16 @@ function makeRandomToken(length = 6) {
   return str;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createSupabaseAdminClient();
+    const url = new URL(request.url);
+    const studentId = url.searchParams.get('studentId');
+
     // first, fetch all sessions for inspection
     let { data, error } = await supabase
       .from("exam_sessions")
-      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
+      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -128,9 +131,35 @@ export async function GET() {
       // refetch after applying updates
       const r2 = await supabase
         .from("exam_sessions")
-        .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
+        .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
         .order("created_at", { ascending: false });
       if (!r2.error) data = r2.data;
+    }
+
+    // If a studentId is provided, filter sessions to those relevant for that student:
+    // - sessions where target_classes (column or settings.targetClasses) is empty (available to all), OR
+    // - sessions where target_classes includes the student's class_name, OR
+    // - sessions where the student already has a participant record (started previously)
+    if (studentId && Array.isArray(data)) {
+      // fetch student's class
+      const { data: profile } = await supabase.from('profiles').select('id, class_name').eq('id', studentId).maybeSingle();
+      const studentClass = profile?.class_name ?? null;
+
+      // find participant session ids for this student
+      const { data: parts } = await supabase.from('exam_participants').select('session_id').eq('student_id', studentId);
+      const participantSessionIds = new Set((parts ?? []).map((p: any) => p.session_id));
+
+      const filtered = (data as any[]).filter((s: any) => {
+        if (participantSessionIds.has(s.id)) return true;
+        const targetCols = Array.isArray(s.target_classes) ? s.target_classes : [];
+        const settingsTargets = (s.settings && Array.isArray(s.settings.targetClasses)) ? s.settings.targetClasses : [];
+        const targets = Array.from(new Set([...targetCols, ...settingsTargets].filter(Boolean)));
+        if (targets.length === 0) return true; // open to all
+        if (studentClass && targets.includes(studentClass)) return true;
+        return false;
+      });
+
+      return NextResponse.json({ data: filtered });
     }
 
     return NextResponse.json({ data });
