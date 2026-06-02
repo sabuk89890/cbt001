@@ -31,6 +31,8 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [submitConfirmVisible, setSubmitConfirmVisible] = useState(false);
+  const [submitConfirmMessage, setSubmitConfirmMessage] = useState("");
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [showQuestionList, setShowQuestionList] = useState(false);
   const timerRef = useRef<number | null>(null);
@@ -393,8 +395,8 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
     }
   };
 
-  const handleSubmitConfirm = useCallback(async () => {
-    // count unanswered questions
+  const handleSubmitConfirm = useCallback(() => {
+    // open an in-app confirmation modal instead of using window.confirm
     const unansweredCount = questions.reduce((acc, q) => {
       const a = answers[q.id];
       const answered = a !== undefined && a !== null && a !== "";
@@ -402,19 +404,19 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
     }, 0);
 
     if (unansweredCount > 0) {
-      const proceed = window.confirm(
-        `Masih ada ${unansweredCount} soal belum dijawab. Anda yakin tetap ingin mengakhiri ujian dan mengumpulkan jawaban?`
-      );
-      if (!proceed) return;
+      setSubmitConfirmMessage(`Masih ada ${unansweredCount} soal belum dijawab. Anda yakin tetap ingin mengakhiri ujian dan mengumpulkan jawaban?`);
     } else {
-      const ok = window.confirm('Yakin ingin mengakhiri ujian dan mengumpulkan jawaban?');
-      if (!ok) return;
+      setSubmitConfirmMessage('Yakin ingin mengakhiri ujian dan mengumpulkan jawaban?');
     }
+    setSubmitConfirmVisible(true);
+  }, [questions, answers]);
 
+  const confirmSubmit = useCallback(async () => {
+    setSubmitConfirmVisible(false);
     const raw = localStorage.getItem('auth:user');
     const studentId = raw ? JSON.parse(raw)?.id : null;
     await submitAnswers(sessionId, studentId);
-  }, [sessionId, answers, questions]);
+  }, [sessionId, submitAnswers]);
 
   const handleAutoSubmit = async (sid: string, studentId: string | null, currentAnswers: Record<string, unknown>) => {
     // auto-submit when time runs out
@@ -488,6 +490,17 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
         paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)'
       }}
     >
+      {submitConfirmVisible ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg p-6 max-w-lg mx-4">
+            <p className="mb-4 text-sm">{submitConfirmMessage}</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setSubmitConfirmVisible(false)} className="rounded px-3 py-1 border">Batal</button>
+              <button onClick={() => { void confirmSubmit(); }} className="rounded px-3 py-1 bg-emerald-600 text-white">Kumpulkan</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {/* page header (site header is from layout) */}
       {/* Blue header (match Loby style) */}
       <header className="bg-gradient-to-r from-sky-600 to-blue-800 px-6 py-4 text-white rounded-md mb-6 shadow-sm">
@@ -598,3 +611,4 @@ export default function ExamSessionPage({ params }: ExamSessionPageProps) {
     </main>
   );
 }
+
