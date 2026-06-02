@@ -149,6 +149,10 @@ export async function GET(request: Request) {
       const { data: parts } = await supabase.from('exam_participants').select('session_id').eq('student_id', studentId);
       const participantSessionIds = new Set((parts ?? []).map((p: any) => p.session_id));
 
+      // also include any sessions where the student already has an exam_submissions row
+      const { data: subs } = await supabase.from('exam_submissions').select('session_id').eq('student_id', studentId);
+      (subs ?? []).forEach((s: any) => participantSessionIds.add(s.session_id));
+
       const filtered = (data as any[]).filter((s: any) => {
         if (participantSessionIds.has(s.id)) return true;
         const targetCols = Array.isArray(s.target_classes) ? s.target_classes : [];
