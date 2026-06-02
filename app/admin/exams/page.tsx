@@ -46,6 +46,7 @@ export default function AdminExamsPage() {
   const [message, setMessage] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const subscriptionRef = useRef<any | null>(null);
@@ -82,9 +83,17 @@ export default function AdminExamsPage() {
   }
 
   async function fetchSessions() {
-    const res = await fetch('/api/exams');
-    const json = await res.json();
-    setSessions(json.data ?? []);
+    try {
+      const res = await fetch('/api/exams');
+      const json = await res.json();
+      if (!res.ok) {
+        setMessage(json.error ?? 'Gagal memuat sesi');
+        return;
+      }
+      setSessions(json.data ?? []);
+    } catch (e) {
+      setMessage('Gagal memuat sesi (network)');
+    }
   }
 
   async function createSession() {
@@ -161,18 +170,26 @@ export default function AdminExamsPage() {
       payload.endsAt = null;
     }
 
+    setIsSubmitting(true);
     let res: Response;
-    if (editingId) {
-      res = await fetch(`/api/exams/${editingId}`, { method: 'PATCH', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
-    } else {
-      // create new
-      const idPayload = { ...payload, id: id };
-      res = await fetch('/api/exams', { method: 'POST', body: JSON.stringify(idPayload), headers: { 'Content-Type': 'application/json' } });
+    try {
+      if (editingId) {
+        res = await fetch(`/api/exams/${editingId}`, { method: 'PATCH', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+      } else {
+        // create new
+        const idPayload = { ...payload, id: id };
+        res = await fetch('/api/exams', { method: 'POST', body: JSON.stringify(idPayload), headers: { 'Content-Type': 'application/json' } });
+      }
+    } catch (e) {
+      setMessage('Gagal menghubungi server');
+      setIsSubmitting(false);
+      return;
     }
 
     const json = await res.json();
     if (!res.ok) {
       setMessage(json.error ?? (editingId ? 'Gagal update sesi' : 'Gagal membuat sesi'));
+      setIsSubmitting(false);
       return;
     }
     setMessage(editingId ? 'Sesi diperbarui' : 'Sesi dibuat');
@@ -194,6 +211,7 @@ export default function AdminExamsPage() {
     setShowCreate(false);
     // attempt to refresh full list in background
     void fetchSessions();
+    setIsSubmitting(false);
   }
 
   async function handleDelete(sessionId: string) {
