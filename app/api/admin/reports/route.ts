@@ -20,6 +20,7 @@ export async function GET(request: Request) {
     const format = url.searchParams.get('format') || 'json';
     const kelas = url.searchParams.get('kelas') || null;
     const mapel = url.searchParams.get('mapel') || null;
+    const sessionId = url.searchParams.get('sessionId') || null;
 
     if (type === 'students') {
       const { data, error } = await supabase
@@ -88,6 +89,7 @@ export async function GET(request: Request) {
       });
 
       if (kelas) rows = rows.filter((x:any)=>x.class_name === kelas);
+      if (sessionId) rows = rows.filter((x:any)=>x.session_id === sessionId);
 
       if (format === 'csv') {
         const csv = toCsv(rows);

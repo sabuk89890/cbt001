@@ -6,9 +6,9 @@ export default function HasilPage() {
   const [type, setType] = useState<"students"|"classes"|"subjects">("students");
   const [rows, setRows] = useState<any[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [filterClass, setFilterClass] = useState("");
-  const [filterSubject, setFilterSubject] = useState("");
+  const [filterSession, setFilterSession] = useState("");
   const [loading, setLoading] = useState(false);
 
   const formatDuration = (secs: number | null | undefined) => {
@@ -31,7 +31,8 @@ export default function HasilPage() {
       const res = await fetch('/api/admin/question-banks');
       const j = await res.json();
       if (!res.ok) return;
-      setSubjects((j.data ?? []).map((b:any)=>b.subject).filter(Boolean).filter((v: any, i: number, a: any[]) => a.indexOf(v) === i));
+      // keep existing subjects fetch for backward compatibility (not shown)
+      // setSubjects((j.data ?? []).map((b:any)=>b.subject).filter(Boolean).filter((v: any, i: number, a: any[]) => a.indexOf(v) === i));
     } catch (e) {}
     try {
       const res2 = await fetch('/api/admin/users?role=student');
@@ -42,6 +43,14 @@ export default function HasilPage() {
         setClasses(unique);
       }
     } catch (e) {}
+    try {
+      // fetch exam sessions to populate "Semua jadwal ujian"
+      const rs = await fetch('/api/exams');
+      const js = await rs.json();
+      if (rs.ok) {
+        setSessions(js.data ?? []);
+      }
+    } catch (e) {}
   }
 
   async function load() {
@@ -50,7 +59,7 @@ export default function HasilPage() {
       const params = new URLSearchParams();
       params.set('type', type);
       if (filterClass) params.set('kelas', filterClass);
-      if (filterSubject) params.set('mapel', filterSubject);
+      if (filterSession) params.set('sessionId', filterSession);
       const res = await fetch('/api/admin/reports?' + params.toString());
       const j = await res.json();
       if (!res.ok) {
@@ -68,7 +77,7 @@ export default function HasilPage() {
     params.set('type', type);
     params.set('format', 'csv');
     if (filterClass) params.set('kelas', filterClass);
-    if (filterSubject) params.set('mapel', filterSubject);
+    if (filterSession) params.set('sessionId', filterSession);
     const res = await fetch('/api/admin/reports?' + params.toString());
     if (!res.ok) {
       const j = await res.json(); alert(j.error ?? 'Gagal export'); return;
@@ -95,9 +104,9 @@ export default function HasilPage() {
             <option value="">Semua kelas</option>
             {classes.map(c=> <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={filterSubject} onChange={(e)=>setFilterSubject(e.target.value)} className="rounded border px-2 py-1">
-            <option value="">Semua mapel</option>
-            {subjects.map(s=> <option key={s} value={s}>{s}</option>)}
+          <select value={filterSession} onChange={(e)=>setFilterSession(e.target.value)} className="rounded border px-2 py-1">
+            <option value="">Semua jadwal ujian</option>
+            {sessions.map(s=> <option key={s.id} value={s.id}>{s.title ?? s.id}</option>)}
           </select>
           <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={load} disabled={loading}>Refresh</button>
           <button className="px-3 py-1 bg-slate-100 rounded" onClick={exportCsv}>Export CSV</button>
