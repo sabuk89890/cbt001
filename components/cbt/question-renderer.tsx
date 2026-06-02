@@ -283,32 +283,47 @@ export function QuestionRenderer({ index, question, value, onChange, readOnly = 
               return (
                 <div key={statement.text} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px]">
                   <p className="rounded-md border px-3 py-2 text-sm whitespace-pre-wrap">{statement.text}</p>
-                  <select
-                    value={selected ? (selected.isTrue ? "Benar" : "Salah") : ""}
-                    disabled={readOnly}
-                    onChange={(event) => {
-                      const current = normalizeTrueFalseStatements(value).filter(
-                        (item) => item.text !== statement.text
-                      );
-
-                      const next = event.target.value
-                        ? [
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name={`tf-${question.id}-${statement.text}`}
+                        checked={selected ? (selected.isTrue === true) : false}
+                        disabled={readOnly}
+                        onChange={() => {
+                          const current = normalizeTrueFalseStatements(value).filter(
+                            (item) => item.text !== statement.text
+                          );
+                          const next = [
                             ...current,
-                            {
-                              text: statement.text,
-                              answer: event.target.value,
-                            },
-                          ]
-                        : current;
+                            { text: statement.text, isTrue: true },
+                          ];
+                          onChange?.(next);
+                        }}
+                      />
+                      <span>Benar</span>
+                    </label>
 
-                      onChange?.(next);
-                    }}
-                    className="rounded-md border px-3 py-2 text-sm"
-                  >
-                    <option value="">Pilih</option>
-                    <option value="Benar">Benar</option>
-                    <option value="Salah">Salah</option>
-                  </select>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name={`tf-${question.id}-${statement.text}`}
+                        checked={selected ? (selected.isTrue === false) : false}
+                        disabled={readOnly}
+                        onChange={() => {
+                          const current = normalizeTrueFalseStatements(value).filter(
+                            (item) => item.text !== statement.text
+                          );
+                          const next = [
+                            ...current,
+                            { text: statement.text, isTrue: false },
+                          ];
+                          onChange?.(next);
+                        }}
+                      />
+                      <span>Salah</span>
+                    </label>
+                  </div>
                 </div>
               );
             })}
