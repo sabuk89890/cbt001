@@ -44,6 +44,8 @@ export default function AdminExamsPage() {
   const [classChoice, setClassChoice] = useState<string>('');
   const [classesLockedFromBank, setClassesLockedFromBank] = useState<boolean>(false);
   const [message, setMessage] = useState("");
+  const [lastFetchResponse, setLastFetchResponse] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,8 +88,11 @@ export default function AdminExamsPage() {
     try {
       const res = await fetch('/api/exams');
       const json = await res.json();
+      setLastFetchResponse(json);
       if (!res.ok) {
         setMessage(json.error ?? 'Gagal memuat sesi');
+        // still set sessions to whatever returned data is (may be empty)
+        setSessions(json.data ?? []);
         return;
       }
       setSessions(json.data ?? []);
@@ -587,6 +592,10 @@ export default function AdminExamsPage() {
               }}>Batal</button> : null}
               </div>
               {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+              <div className="mt-2 flex items-center gap-2">
+                <label className="text-xs text-slate-500">Debug:</label>
+                <button className="text-xs px-2 py-1 border rounded" onClick={()=>setShowDebug(v=>!v)}>{showDebug ? 'Sembunyikan debug' : 'Tampilkan debug'}</button>
+              </div>
             </div>
           </section>
         ) : null}
@@ -636,6 +645,12 @@ export default function AdminExamsPage() {
             })}
           </section>
         )}
+        {showDebug && lastFetchResponse ? (
+          <section className="mt-6 rounded border p-4 bg-white">
+            <h3 className="text-sm font-medium">Debug: response /api/exams</h3>
+            <pre className="mt-2 max-h-64 overflow-auto text-xs">{JSON.stringify(lastFetchResponse, null, 2)}</pre>
+          </section>
+        ) : null}
       </div>
     </main>
   );

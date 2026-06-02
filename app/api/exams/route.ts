@@ -100,13 +100,26 @@ export async function GET(request: Request) {
     const studentId = url.searchParams.get('studentId');
 
     // first, fetch all sessions for inspection
-    let { data, error } = await supabase
-      .from("exam_sessions")
-      .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    let data: any = null;
+    try {
+      const res = await supabase
+        .from("exam_sessions")
+        .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
+        .order("created_at", { ascending: false });
+      if (res.error) throw res.error;
+      data = res.data;
+    } catch (e) {
+      // fallback for older schemas without target_classes column
+      try {
+        const res2 = await supabase
+          .from("exam_sessions")
+          .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
+          .order("created_at", { ascending: false });
+        if (res2.error) throw res2.error;
+        data = (res2.data ?? []).map((s: any) => ({ ...s, target_classes: [] }));
+      } catch (e2) {
+        return NextResponse.json({ error: (e2 as Error).message }, { status: 500 });
+      }
     }
 
     const nowMs = Date.now();
@@ -128,12 +141,20 @@ export async function GET(request: Request) {
       for (const upd of updates) {
         await supabase.from('exam_sessions').update({ settings: upd.settings }).eq('id', upd.id);
       }
-      // refetch after applying updates
-      const r2 = await supabase
-        .from("exam_sessions")
-        .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
-        .order("created_at", { ascending: false });
-      if (!r2.error) data = r2.data;
+      // refetch after applying updates; handle missing target_classes as above
+      try {
+        const r2 = await supabase
+          .from("exam_sessions")
+          .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, target_classes, is_active")
+          .order("created_at", { ascending: false });
+        if (!r2.error) data = r2.data;
+      } catch {
+        const r3 = await supabase
+          .from("exam_sessions")
+          .select("id, title, bank_id, starts_at, ends_at, duration_minutes, settings, is_active")
+          .order("created_at", { ascending: false });
+        if (!r3.error) data = (r3.data ?? []).map((s: any) => ({ ...s, target_classes: [] }));
+      }
     }
 
     // If a studentId is provided, filter sessions to those relevant for that student:
