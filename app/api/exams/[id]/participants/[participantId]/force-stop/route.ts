@@ -17,7 +17,9 @@ export async function POST(request: Request, context: RouteContext) {
 
     // grade answers using existing question engine helper (best-effort)
     const answersMap = participant.answers || {};
-    let computedScore = 0;
+    let computedRawScore = 0;
+    let totalMaxScore = 0;
+    let gradingDetails: any[] = [];
     try {
       // fetch session questions for participant
       const { data: sQuestions } = await supabase.from("session_questions").select("question_id").eq("participant_id", participantId);
@@ -28,20 +30,52 @@ export async function POST(request: Request, context: RouteContext) {
         for (const q of rows) {
           const submitted = (answersMap as any)[q.id];
           const detail = gradeQuestion(q as any, submitted);
-          computedScore += detail.finalScore ?? 0;
+          gradingDetails.push(detail);
+          computedRawScore += detail.finalScore ?? 0;
+          totalMaxScore += Number(q.max_score) || 0;
         }
       }
     } catch (e) {
-      computedScore = 0;
+      computedRawScore = 0;
+      totalMaxScore = 0;
+      gradingDetails = [];
     }
 
-    const { error: upErr } = await supabase.from("exam_participants").update({ finished_at: new Date().toISOString(), status: "stopped", score: computedScore }).eq("id", participantId);
+    // compute percentage score consistent with submit flow
+    const { calculatePercentage, computeStatusFromPercentage } = await import("@/lib/cbt/question-engine");
+    const percentageScore = totalMaxScore > 0 ? calculatePercentage(computedRawScore, totalMaxScore) : 0;
+
+    const { error: upErr } = await supabase.from("exam_participants").update({ finished_at: new Date().toISOString(), status: "stopped", score: percentageScore }).eq("id", participantId);
 
     if (upErr) {
       return NextResponse.json({ error: upErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data: { participantId, score: computedScore } });
+    // also record an exam_submissions row so reports include this forced stop
+    try {
+      // avoid duplicate submission if one already exists for this session+student
+      if (participant.student_id) {
+        const existing = await supabase.from('exam_submissions').select('id').eq('session_id', participant.session_id).eq('student_id', participant.student_id).maybeSingle();
+        if (!existing.data) {
+          await supabase.from('exam_submissions').insert({
+            session_id: participant.session_id,
+            student_id: participant.student_id,
+            answers: participant.answers ?? {},
+            score: percentageScore,
+            status: computeStatusFromPercentage(percentageScore),
+            auto_score: percentageScore,
+            manual_adjustment: 0,
+            grading_detail: gradingDetails,
+            needs_manual_review: gradingDetails.some((d:any) => d.needsManualReview),
+            review_status: gradingDetails.some((d:any) => d.needsManualReview) ? 'auto' : 'reviewed',
+          });
+        }
+      }
+    } catch (e) {
+      // non-fatal: continue even if submission insert fails
+    }
+
+    return NextResponse.json({ data: { participantId, score: percentageScore } });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

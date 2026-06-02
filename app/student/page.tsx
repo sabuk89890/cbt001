@@ -199,7 +199,8 @@ export default function StudentLobbyPage() {
             const rawStart = s.starts_at ?? (s.settings && s.settings.startsAt) ?? null;
             const startsAt = rawStart ? new Date(rawStart) : null;
             const duration = s.duration_minutes ?? (s.settings?.durationMinutes ?? null);
-            const endsAt = startsAt && duration ? new Date(startsAt.getTime() + duration * 60000) : null;
+            const rawEnd = s.ends_at ?? (s.settings && s.settings.endsAt) ?? null;
+            const endsAt = rawEnd ? new Date(rawEnd) : (startsAt && duration ? new Date(startsAt.getTime() + duration * 60000) : null);
 
             // if we don't know a start time explicitly, consider it not yet started
             const isOngoing = startsAt ? now >= startsAt && (!endsAt || now <= endsAt) : false;
