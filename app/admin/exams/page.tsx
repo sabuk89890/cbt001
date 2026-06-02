@@ -176,6 +176,12 @@ export default function AdminExamsPage() {
       return;
     }
     setMessage(editingId ? 'Sesi diperbarui' : 'Sesi dibuat');
+    // optimistic: add created session to list so admin sees it immediately
+    try {
+      if (json.data) {
+        setSessions((prev) => [json.data, ...(Array.isArray(prev) ? prev : [])]);
+      }
+    } catch {}
     // reset form
     setTitle('');
     setSelectedBank(null);
@@ -186,7 +192,8 @@ export default function AdminExamsPage() {
     setSelectedClasses([]);
     setEditingId(null);
     setShowCreate(false);
-    await fetchSessions();
+    // attempt to refresh full list in background
+    void fetchSessions();
   }
 
   async function handleDelete(sessionId: string) {
