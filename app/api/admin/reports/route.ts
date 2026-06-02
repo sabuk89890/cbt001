@@ -80,7 +80,7 @@ export async function GET(request: Request) {
           full_name: prof?.full_name ?? null,
           class_name: prof?.class_name ?? null,
           session_id: r.session_id,
-          score: r.score,
+          score: typeof r.score === 'number' ? Math.min(r.score, 100) : (typeof r.score === 'string' ? Math.min(Number(r.score) || 0, 100) : r.score),
           status: r.status,
           submitted_at: r.created_at,
           duration_seconds: durationSeconds,
